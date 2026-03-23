@@ -206,10 +206,15 @@ export default function SignUp() {
     if (error) { setError(error.message) } else { setSuccess(true); setCountdown(30) }
     setLoading(false)
   }
-
-  async function handleGoogleSignUp() {
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/dashboard' } })
-  }
+async function handleGoogleSignUp() {
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + '/dashboard',
+      queryParams: { prompt: 'select_account' }   // forces Google to always show account picker
+    }
+  })
+}
 
   async function handleManualResend() {
     setResending(true); setResendMessage(''); setResendSuccess(false)
