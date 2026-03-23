@@ -1,28 +1,27 @@
 import './index.css'
-import { useEffect, useState } from 'react'
-import { supabase } from './supabase'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import SignIn from './pages/SignIn'
+import SignUp from './pages/SignUp'
+import Dashboard from './pages/Dashboard'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
 
 function App() {
-  const [connected, setConnected] = useState(false)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(() => {
-      setConnected(true)
-    })
-  }, [])
-
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-4">AXIS</h1>
-        <p className="text-gray-400 text-lg mb-6">
-          Personal Second Brain and AI Power User System
-        </p>
-        <div className="bg-green-900 text-green-300 px-6 py-3 rounded-lg text-sm font-medium">
-          {connected ? 'Supabase connected successfully' : 'Connecting...'}
-        </div>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/signin" />} />
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
