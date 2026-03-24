@@ -206,15 +206,16 @@ export default function SignUp() {
     if (error) { setError(error.message) } else { setSuccess(true); setCountdown(30) }
     setLoading(false)
   }
-async function handleGoogleSignUp() {
-  await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin + '/dashboard',
-      queryParams: { prompt: 'select_account' }   // forces Google to always show account picker
-    }
-  })
-}
+
+  async function handleGoogleSignUp() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/dashboard',
+        queryParams: { prompt: 'select_account' }
+      }
+    })
+  }
 
   async function handleManualResend() {
     setResending(true); setResendMessage(''); setResendSuccess(false)
@@ -228,42 +229,40 @@ async function handleGoogleSignUp() {
     c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.includes(countrySearch)
   )
   const selectedCountry = COUNTRIES.find(c => c.code === countryCode)
-
-  const inputStyle = { paddingLeft: '42px' }
   const iconStyle = { position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }
 
   if (success) {
     return (
-      <div className="page-bg flex items-center justify-center px-4 py-12" style={{ minHeight: '100vh' }}>
+      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',background:'#09090f',position:'relative'}}>
         <div className="glow-purple" />
-        <div style={{ width: '100%', maxWidth: '480px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div className="axis-logo gradient-text" style={{ marginBottom: '8px' }}>AXIS</div>
+        <div style={{width:'100%',maxWidth:'480px',position:'relative',zIndex:1}}>
+          <div style={{textAlign:'center',marginBottom:'32px'}}>
+            <div className="axis-logo gradient-text" style={{marginBottom:'8px'}}>Mindoo</div>
           </div>
-          <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-              <Check size={28} style={{ color: '#4ade80' }} />
+          <div className="glass-card" style={{padding:'clamp(24px, 5vw, 40px)',textAlign:'center'}}>
+            <div style={{width:'64px',height:'64px',borderRadius:'20px',background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}>
+              <Check size={28} style={{color:'#4ade80'}} />
             </div>
-            <h2 style={{ fontFamily: 'Sora,sans-serif', fontWeight: '700', fontSize: '24px', color: '#ffffff', letterSpacing: '-0.02em', marginBottom: '8px' }}>Check your email</h2>
-            <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>We sent a confirmation link to</p>
-            <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '15px', fontWeight: '600', color: '#ffffff', marginBottom: '8px' }}>{email}</p>
-            <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '13px', color: 'rgba(255,255,255,0.3)', marginBottom: '32px' }}>Click the link to activate your account. Check your spam folder if you do not see it.</p>
+            <h2 style={{fontFamily:'Sora,sans-serif',fontWeight:'700',fontSize:'24px',color:'#ffffff',letterSpacing:'-0.02em',marginBottom:'8px'}}>Check your email</h2>
+            <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',marginBottom:'4px'}}>We sent a confirmation link to</p>
+            <p style={{fontFamily:'Inter,sans-serif',fontSize:'15px',fontWeight:'600',color:'#ffffff',marginBottom:'8px',wordBreak:'break-all'}}>{email}</p>
+            <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(255,255,255,0.3)',marginBottom:'32px',lineHeight:'1.6'}}>Click the link to activate your account. Check your spam folder if you do not see it.</p>
             {resendMessage && (
-              <div className={resendSuccess ? 'alert-success' : 'alert-error'} style={{ marginBottom: '20px' }}>
-                <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '13px', color: resendSuccess ? '#4ade80' : '#f87171' }}>{resendMessage}</p>
+              <div className={resendSuccess ? 'alert-success' : 'alert-error'} style={{marginBottom:'20px'}}>
+                <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:resendSuccess ? '#4ade80' : '#f87171'}}>{resendMessage}</p>
               </div>
             )}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontFamily: 'Inter,sans-serif', fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>{countdown > 0 ? `Auto-resend in ${countdown}s` : 'Ready to resend'}</span>
-                <span style={{ fontFamily: 'Inter,sans-serif', fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>{Math.round((countdown / 30) * 100)}%</span>
+            <div style={{marginBottom:'16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
+                <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.3)'}}>{countdown > 0 ? `Auto-resend in ${countdown}s` : 'Ready to resend'}</span>
+                <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.3)'}}>{Math.round((countdown / 30) * 100)}%</span>
               </div>
-              <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: 'linear-gradient(90deg,#8b5cf6,#3b82f6)', borderRadius: '2px', width: `${(countdown / 30) * 100}%`, transition: 'width 1s linear' }} />
+              <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',overflow:'hidden'}}>
+                <div style={{height:'100%',background:'linear-gradient(90deg,#8b5cf6,#3b82f6)',borderRadius:'2px',width:`${(countdown / 30) * 100}%`,transition:'width 1s linear'}} />
               </div>
             </div>
-            <button onClick={handleManualResend} disabled={countdown > 0 || resending} className="btn-primary" style={{ marginBottom: '12px' }}>
-              {resending ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /><span>Sending...</span></> : countdown > 0 ? <span>Resend available in {countdown}s</span> : <span>Resend confirmation email</span>}
+            <button onClick={handleManualResend} disabled={countdown > 0 || resending} className="btn-primary" style={{marginBottom:'12px'}}>
+              {resending ? <><Loader2 size={16} style={{animation:'spin 1s linear infinite'}}/><span>Sending...</span></> : countdown > 0 ? <span>Resend available in {countdown}s</span> : <span>Resend confirmation email</span>}
             </button>
             <button onClick={() => navigate('/signin')} className="btn-secondary">
               <span>Back to Sign In</span>
@@ -276,95 +275,103 @@ async function handleGoogleSignUp() {
   }
 
   return (
-    <div className="page-bg flex items-center justify-center px-4 py-12" style={{ minHeight: '100vh' }}>
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',background:'#09090f',position:'relative'}}>
       <div className="glow-purple" />
-      <div style={{ width: '100%', maxWidth: '480px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div className="axis-logo gradient-text" style={{ marginBottom: '8px' }}>AXIS</div>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '15px', fontFamily: 'Inter,sans-serif' }}>Create your Second Brain</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
-            <div style={{ height: '3px', width: '60px', borderRadius: '2px', background: step >= 1 ? 'linear-gradient(90deg,#8b5cf6,#6366f1)' : 'rgba(255,255,255,0.1)', transition: 'all 0.3s' }} />
-            <div style={{ height: '3px', width: '60px', borderRadius: '2px', background: step >= 2 ? 'linear-gradient(90deg,#6366f1,#3b82f6)' : 'rgba(255,255,255,0.1)', transition: 'all 0.3s' }} />
-            <span style={{ fontFamily: 'Inter,sans-serif', fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginLeft: '8px' }}>Step {step} of 2</span>
+      <div style={{width:'100%',maxWidth:'480px',position:'relative',zIndex:1}}>
+
+        {/* HEADER */}
+        <div style={{textAlign:'center',marginBottom:'32px'}}>
+          <div className="axis-logo gradient-text" style={{marginBottom:'8px'}}>Mindoo</div>
+          <p style={{color:'rgba(255,255,255,0.4)',fontSize:'15px',fontFamily:'Inter,sans-serif'}}>From chaos to clarity. Now do more.</p>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'16px'}}>
+            <div style={{height:'3px',width:'60px',borderRadius:'2px',background: step >= 1 ? 'linear-gradient(90deg,#8b5cf6,#6366f1)' : 'rgba(255,255,255,0.1)',transition:'all 0.3s'}} />
+            <div style={{height:'3px',width:'60px',borderRadius:'2px',background: step >= 2 ? 'linear-gradient(90deg,#6366f1,#3b82f6)' : 'rgba(255,255,255,0.1)',transition:'all 0.3s'}} />
+            <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.3)',marginLeft:'8px'}}>Step {step} of 2</span>
           </div>
         </div>
 
-        <div className="glass-card" style={{ padding: '40px' }}>
+        {/* CARD */}
+        <div className="glass-card" style={{padding:'clamp(24px, 5vw, 40px)'}}>
           {error && (
-            <div className="alert-error">
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                <span style={{ color: '#f87171', flexShrink: 0 }}>✗</span>
-                <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '13px', color: 'rgba(248,113,113,0.9)' }}>{error}</p>
+            <div className="alert-error" style={{marginBottom:'16px'}}>
+              <div style={{display:'flex',gap:'10px',alignItems:'flex-start'}}>
+                <span style={{color:'#f87171',flexShrink:0}}>✗</span>
+                <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(248,113,113,0.9)'}}>{error}</p>
               </div>
             </div>
           )}
 
+          {/* STEP 1 */}
           {step === 1 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+
+              {/* NAME FIELDS — stack on mobile */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))',gap:'12px'}}>
                 <div>
                   <label className="label-text">First name</label>
-                  <div style={{ position: 'relative' }}>
+                  <div style={{position:'relative'}}>
                     <User size={16} style={iconStyle} />
-                    <input type="text" value={firstName} onChange={e => { setFirstName(e.target.value); setFirstNameError('') }} autoFocus className={`glass-input ${firstNameError ? 'error' : ''}`} style={inputStyle} placeholder="John" />
+                    <input type="text" value={firstName} onChange={e => { setFirstName(e.target.value); setFirstNameError('') }} autoFocus className={`glass-input ${firstNameError ? 'error' : ''}`} style={{paddingLeft:'42px'}} placeholder="John" />
                   </div>
                   {firstNameError && <p className="error-message">✗ {firstNameError}</p>}
                 </div>
                 <div>
                   <label className="label-text">Last name</label>
-                  <div style={{ position: 'relative' }}>
+                  <div style={{position:'relative'}}>
                     <User size={16} style={iconStyle} />
-                    <input type="text" value={lastName} onChange={e => { setLastName(e.target.value); setLastNameError('') }} className={`glass-input ${lastNameError ? 'error' : ''}`} style={inputStyle} placeholder="Doe" />
+                    <input type="text" value={lastName} onChange={e => { setLastName(e.target.value); setLastNameError('') }} className={`glass-input ${lastNameError ? 'error' : ''}`} style={{paddingLeft:'42px'}} placeholder="Doe" />
                   </div>
                   {lastNameError && <p className="error-message">✗ {lastNameError}</p>}
                 </div>
               </div>
 
+              {/* EMAIL */}
               <div>
                 <label className="label-text">Email address</label>
-                <div style={{ position: 'relative' }}>
+                <div style={{position:'relative'}}>
                   <Mail size={16} style={iconStyle} />
-                  <input type="email" value={email} onChange={e => { setEmail(e.target.value); setEmailError(validateEmail(e.target.value)) }} className={`glass-input ${emailError ? 'error' : ''}`} style={inputStyle} placeholder="name@example.com" />
+                  <input type="email" value={email} onChange={e => { setEmail(e.target.value); setEmailError(validateEmail(e.target.value)) }} className={`glass-input ${emailError ? 'error' : ''}`} style={{paddingLeft:'42px'}} placeholder="name@example.com" />
                 </div>
-                {emailError ? <p className="error-message">✗ {emailError}</p> : <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.2)', marginTop: '6px' }}>We will never share your email with anyone.</p>}
+                {emailError ? <p className="error-message">✗ {emailError}</p> : <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.2)',marginTop:'6px'}}>We will never share your email with anyone.</p>}
               </div>
 
+              {/* PHONE */}
               <div>
-                <label className="label-text">Phone number <span style={{ color: 'rgba(255,255,255,0.2)', fontWeight: '400' }}>(optional)</span></label>
-                <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
-                  <div style={{ position: 'relative', flexShrink: 0 }}>
-                    <button type="button" onClick={() => setShowCountryDropdown(!showCountryDropdown)} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '13px 12px', color: 'white', cursor: 'pointer', fontSize: '14px', whiteSpace: 'nowrap', fontFamily: 'Inter,sans-serif' }}>
+                <label className="label-text">Phone number <span style={{color:'rgba(255,255,255,0.2)',fontWeight:'400'}}>(optional)</span></label>
+                <div style={{display:'flex',gap:'8px',position:'relative'}}>
+                  <div style={{position:'relative',flexShrink:0}}>
+                    <button type="button" onClick={() => setShowCountryDropdown(!showCountryDropdown)} style={{display:'flex',alignItems:'center',gap:'6px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'12px',padding:'13px 12px',color:'white',cursor:'pointer',fontSize:'14px',whiteSpace:'nowrap',fontFamily:'Inter,sans-serif'}}>
                       <span>{selectedCountry?.flag}</span>
                       <span>{countryCode}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>▼</span>
+                      <span style={{color:'rgba(255,255,255,0.3)',fontSize:'10px'}}>▼</span>
                     </button>
                     {showCountryDropdown && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '4px', width: '280px', background: '#16162a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', zIndex: 100, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
-                        <div style={{ padding: '12px' }}>
-                          <input type="text" value={countrySearch} onChange={e => setCountrySearch(e.target.value)} placeholder="Search country..." autoFocus className="glass-input" style={{ fontSize: '13px', padding: '10px 14px' }} />
+                      <div style={{position:'absolute',top:'100%',left:0,marginTop:'4px',width:'min(280px, calc(100vw - 32px))',background:'#16162a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',zIndex:100,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.5)'}}>
+                        <div style={{padding:'12px'}}>
+                          <input type="text" value={countrySearch} onChange={e => setCountrySearch(e.target.value)} placeholder="Search country..." autoFocus className="glass-input" style={{fontSize:'13px',padding:'10px 14px'}} />
                         </div>
-                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        <div style={{maxHeight:'200px',overflowY:'auto'}}>
                           {filteredCountries.map(c => (
-                            <button key={c.code} type="button" onClick={() => handleCountryChange(c.code)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', background: countryCode === c.code ? 'rgba(139,92,246,0.15)' : 'transparent', border: 'none', cursor: 'pointer', color: 'white', fontFamily: 'Inter,sans-serif', fontSize: '13px', textAlign: 'left' }}>
+                            <button key={c.code} type="button" onClick={() => handleCountryChange(c.code)} style={{width:'100%',display:'flex',alignItems:'center',gap:'10px',padding:'10px 16px',background: countryCode === c.code ? 'rgba(139,92,246,0.15)' : 'transparent',border:'none',cursor:'pointer',color:'white',fontFamily:'Inter,sans-serif',fontSize:'13px',textAlign:'left'}}>
                               <span>{c.flag}</span>
-                              <span style={{ flex: 1 }}>{c.name}</span>
-                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>{c.code} · {c.digits}d</span>
+                              <span style={{flex:1}}>{c.name}</span>
+                              <span style={{color:'rgba(255,255,255,0.3)',fontSize:'11px'}}>{c.code} · {c.digits}d</span>
                             </button>
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
-                  <div style={{ flex: 1, position: 'relative' }}>
+                  <div style={{flex:1,position:'relative'}}>
                     <Phone size={16} style={iconStyle} />
-                    <input type="tel" value={phone} onChange={e => handlePhoneChange(e.target.value)} className={`glass-input ${phoneError ? 'error' : phone && !phoneError ? 'success' : ''}`} style={inputStyle} placeholder={`${selectedCountry?.digits || 10} digits`} maxLength={15} />
+                    <input type="tel" value={phone} onChange={e => handlePhoneChange(e.target.value)} className={`glass-input ${phoneError ? 'error' : phone && !phoneError ? 'success' : ''}`} style={{paddingLeft:'42px'}} placeholder={`${selectedCountry?.digits || 10} digits`} maxLength={15} />
                   </div>
                 </div>
                 {phoneError && <p className="error-message">✗ {phoneError}</p>}
                 {phone && !phoneError && <p className="success-message"><Check size={12} /> Valid phone number</p>}
               </div>
 
-              <button type="button" onClick={handleStepOne} className="btn-primary" style={{ marginTop: '4px' }}>
+              <button type="button" onClick={handleStepOne} className="btn-primary" style={{marginTop:'4px'}}>
                 <span>Continue</span>
               </button>
 
@@ -380,36 +387,37 @@ async function handleGoogleSignUp() {
                 <span>Continue with Google</span>
               </button>
 
-              <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '14px', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+              <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',textAlign:'center'}}>
                 Already have an account?{' '}
-                <Link to="/signin" style={{ color: '#a78bfa', textDecoration: 'none', fontWeight: '600' }}>Sign in</Link>
+                <Link to="/signin" style={{color:'#a78bfa',textDecoration:'none',fontWeight:'600'}}>Sign in</Link>
               </p>
             </div>
           )}
 
+          {/* STEP 2 */}
           {step === 2 && (
-            <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <button type="button" onClick={() => { setStep(1); setError('') }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: '13px', fontFamily: 'Inter,sans-serif', padding: '0', marginBottom: '4px' }}>
+            <form onSubmit={handleSignUp} style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+              <button type="button" onClick={() => { setStep(1); setError('') }} style={{display:'flex',alignItems:'center',gap:'6px',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.4)',fontSize:'13px',fontFamily:'Inter,sans-serif',padding:'0',marginBottom:'4px'}}>
                 <ChevronLeft size={14} /> Back
               </button>
 
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '12px 16px' }}>
-                <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginBottom: '2px' }}>Signing up as</p>
-                <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '14px', fontWeight: '600', color: '#ffffff' }}>{firstName} {lastName} — {email}</p>
+              <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',padding:'12px 16px'}}>
+                <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.3)',marginBottom:'2px'}}>Signing up as</p>
+                <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',fontWeight:'600',color:'#ffffff',wordBreak:'break-all'}}>{firstName} {lastName} — {email}</p>
               </div>
 
               {showSuggestion && (
-                <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '14px', padding: '16px' }}>
-                  <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '12px', fontWeight: '600', color: '#a78bfa', marginBottom: '10px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Suggested strong password</p>
-                  <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '12px 14px', marginBottom: '10px' }}>
-                    <p style={{ fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', letterSpacing: '0.05em', wordBreak: 'break-all' }}>{suggestedPassword}</p>
+                <div style={{background:'rgba(139,92,246,0.08)',border:'1px solid rgba(139,92,246,0.2)',borderRadius:'14px',padding:'16px'}}>
+                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',fontWeight:'600',color:'#a78bfa',marginBottom:'10px',letterSpacing:'0.05em',textTransform:'uppercase'}}>Suggested strong password</p>
+                  <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'10px',padding:'12px 14px',marginBottom:'10px'}}>
+                    <p style={{fontFamily:'monospace',fontSize:'14px',color:'#ffffff',letterSpacing:'0.05em',wordBreak:'break-all'}}>{suggestedPassword}</p>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="button" onClick={() => { setPassword(suggestedPassword); setConfirmPassword(suggestedPassword); setShowPassword(true); setShowSuggestion(false) }} style={{ flex: 1, background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', color: 'white', border: 'none', borderRadius: '10px', padding: '9px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}>Use this</button>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText(suggestedPassword); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '9px 14px', fontSize: '13px', cursor: 'pointer', fontFamily: 'Inter,sans-serif', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                    <button type="button" onClick={() => { setPassword(suggestedPassword); setConfirmPassword(suggestedPassword); setShowPassword(true); setShowSuggestion(false) }} style={{flex:1,minWidth:'80px',background:'linear-gradient(135deg,#8b5cf6,#6366f1)',color:'white',border:'none',borderRadius:'10px',padding:'9px',fontSize:'13px',fontWeight:'600',cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Use this</button>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(suggestedPassword); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{background:'rgba(255,255,255,0.06)',color:'rgba(255,255,255,0.7)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'9px 14px',fontSize:'13px',cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',gap:'4px'}}>
                       {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
                     </button>
-                    <button type="button" onClick={() => setSuggestedPassword(generatePassword())} style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '9px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <button type="button" onClick={() => setSuggestedPassword(generatePassword())} style={{background:'rgba(255,255,255,0.06)',color:'rgba(255,255,255,0.7)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'9px 14px',fontSize:'13px',cursor:'pointer',display:'flex',alignItems:'center'}}>
                       <RefreshCw size={13} />
                     </button>
                   </div>
@@ -417,74 +425,74 @@ async function handleGoogleSignUp() {
               )}
 
               {!showSuggestion && (
-                <button type="button" onClick={() => { setSuggestedPassword(generatePassword()); setShowSuggestion(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: '13px', fontFamily: 'Inter,sans-serif', display: 'flex', alignItems: 'center', gap: '6px', padding: '0' }}>
+                <button type="button" onClick={() => { setSuggestedPassword(generatePassword()); setShowSuggestion(true) }} style={{background:'none',border:'none',cursor:'pointer',color:'#a78bfa',fontSize:'13px',fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',gap:'6px',padding:'0'}}>
                   ✦ Suggest a strong password
                 </button>
               )}
 
               <div>
                 <label className="label-text">Password</label>
-                <div style={{ position: 'relative' }}>
+                <div style={{position:'relative'}}>
                   <Lock size={16} style={iconStyle} />
-                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} autoFocus className="glass-input" style={{ paddingLeft: '42px', paddingRight: '50px' }} placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', display: 'flex', padding: '0' }}>
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} autoFocus className="glass-input" style={{paddingLeft:'42px',paddingRight:'50px'}} placeholder="••••••••" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',display:'flex',padding:'0'}}>
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
                 {password && (
-                  <div style={{ marginTop: '10px' }}>
-                    <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
+                  <div style={{marginTop:'10px'}}>
+                    <div style={{display:'flex',gap:'4px',marginBottom:'6px'}}>
                       {[0,1,2,3,4].map(i => (
-                        <div key={i} className="strength-segment" style={{ background: i < strength ? strengthLevel.color : 'rgba(255,255,255,0.08)' }} />
+                        <div key={i} className="strength-segment" style={{background: i < strength ? strengthLevel.color : 'rgba(255,255,255,0.08)'}} />
                       ))}
                     </div>
-                    <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '12px', color: strengthLevel.color }}>{strengthLevel.label}</p>
+                    <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:strengthLevel.color}}>{strengthLevel.label}</p>
                   </div>
                 )}
               </div>
 
               <div>
                 <label className="label-text">Confirm password</label>
-                <div style={{ position: 'relative' }}>
+                <div style={{position:'relative'}}>
                   <Lock size={16} style={iconStyle} />
-                  <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={`glass-input ${confirmPassword && (reqs.match ? 'success' : 'error')}`} style={{ paddingLeft: '42px', paddingRight: '50px' }} placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', display: 'flex', padding: '0' }}>
+                  <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={`glass-input ${confirmPassword && (reqs.match ? 'success' : 'error')}`} style={{paddingLeft:'42px',paddingRight:'50px'}} placeholder="••••••••" />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',display:'flex',padding:'0'}}>
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
                 {confirmPassword && (
-                  <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '12px', color: reqs.match ? '#4ade80' : '#f87171', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color: reqs.match ? '#4ade80' : '#f87171',marginTop:'6px',display:'flex',alignItems:'center',gap:'4px'}}>
                     {reqs.match ? <><Check size={12} /> Passwords match</> : '✗ Passwords do not match'}
                   </p>
                 )}
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '11px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Password requirements</p>
+              <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',padding:'14px 16px',display:'flex',flexDirection:'column',gap:'8px'}}>
+                <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Password requirements</p>
                 <Req met={reqs.length} text="At least 8 characters" />
                 <Req met={reqs.upper} text="One uppercase letter" />
                 <Req met={reqs.number} text="One number" />
                 <Req met={reqs.special} text="One special character (!@#$...)" />
               </div>
 
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: '#8b5cf6', marginTop: '2px', flexShrink: 0 }} />
-                <span style={{ fontFamily: 'Inter,sans-serif', fontSize: '12px', color: 'rgba(255,255,255,0.4)', lineHeight: '1.6' }}>
+              <label style={{display:'flex',alignItems:'flex-start',gap:'10px',cursor:'pointer'}}>
+                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{width:'16px',height:'16px',accentColor:'#8b5cf6',marginTop:'2px',flexShrink:0}} />
+                <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.4)',lineHeight:'1.6'}}>
                   I agree to the{' '}
-                  <Link to="/terms" target="_blank" style={{ color: '#a78bfa', textDecoration: 'underline' }}>Terms of Service</Link>
+                  <Link to="/terms" target="_blank" style={{color:'#a78bfa',textDecoration:'underline'}}>Terms of Service</Link>
                   {' '}and{' '}
-                  <Link to="/privacy" target="_blank" style={{ color: '#a78bfa', textDecoration: 'underline' }}>Privacy Policy</Link>.
+                  <Link to="/privacy" target="_blank" style={{color:'#a78bfa',textDecoration:'underline'}}>Privacy Policy</Link>.
                   {' '}We never share your data.
                 </span>
               </label>
 
               <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /><span>Creating account...</span></> : <span>Create Account</span>}
+                {loading ? <><Loader2 size={16} style={{animation:'spin 1s linear infinite'}}/><span>Creating account...</span></> : <span>Create Account</span>}
               </button>
 
-              <p style={{ fontFamily: 'Inter,sans-serif', fontSize: '14px', color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+              <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',textAlign:'center'}}>
                 Already have an account?{' '}
-                <Link to="/signin" style={{ color: '#a78bfa', textDecoration: 'none', fontWeight: '600' }}>Sign in</Link>
+                <Link to="/signin" style={{color:'#a78bfa',textDecoration:'none',fontWeight:'600'}}>Sign in</Link>
               </p>
             </form>
           )}
