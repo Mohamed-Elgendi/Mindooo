@@ -468,12 +468,14 @@ export default function Dashboard() {
       }));
       history.push({ role:"user", content:txt });
 
-      const response = await fetch("/api/anthropic/v1/messages", {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
-                "Content-Type": "application/json",
-                "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
-                },
+          "Content-Type":                              "application/json",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version":                         "2023-06-01",
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY || "",
+        },
         body: JSON.stringify({
           model:      "claude-sonnet-4-20250514",
           max_tokens: 1000,
