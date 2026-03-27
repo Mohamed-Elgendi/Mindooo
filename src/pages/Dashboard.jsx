@@ -17,7 +17,7 @@ html,body,#root{height:100%;background:#09090f;color:#f8f8ff;font-family:'Inter'
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
 .md-wrap{display:flex;height:100vh;overflow:hidden;position:relative;z-index:1}
 .bg-glow{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 55% 40% at 18% 8%,rgba(139,92,246,0.07) 0%,transparent 70%),radial-gradient(ellipse 45% 35% at 82% 82%,rgba(59,130,246,0.055) 0%,transparent 70%)}
-.sb{width:232px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--cb);display:flex;flex-direction:column;height:100vh;overflow:hidden;transition:transform .28s cubic-bezier(.4,0,.2,1);z-index:50}
+.sb{width:232px;flex-shrink:0;background:var(--surf);border-right:1px solid var(--cb);display:flex;flex-direction:column;height:100vh;overflow:hidden;transition:left .28s cubic-bezier(.4,0,.2,1);z-index:50;position:relative}
 .sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--cb);flex-shrink:0}
 .sb-logo-text{font-family:'Sora',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.04em;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .sb-logo-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
@@ -43,7 +43,7 @@ html,body,#root{height:100%;background:#09090f;color:#f8f8ff;font-family:'Inter'
 .ibtn:hover{background:var(--ch);color:var(--text)}
 .mob-bar{display:none;padding:13px 18px;border-bottom:1px solid var(--cb);align-items:center;justify-content:space-between;background:var(--surf);flex-shrink:0}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:48}
-@media(max-width:768px){.sb{position:fixed;top:0;left:-236px;height:100vh;z-index:49}.sb.open{left:0}.sb-overlay.open{display:block}.mob-bar{display:flex}.topbar{display:none}.px{padding:16px}.g2,.g3{grid-template-columns:1fr!important}.g4{grid-template-columns:1fr 1fr!important}}
+@media(max-width:768px){.sb{position:fixed;top:0;left:-236px;height:100vh;z-index:49;background:var(--surf);display:flex;flex-direction:column}.sb.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,0.5)}
 .scroll{flex:1;overflow-y:auto}
 .px{padding:26px}
 .sora{font-family:'Sora',sans-serif}
