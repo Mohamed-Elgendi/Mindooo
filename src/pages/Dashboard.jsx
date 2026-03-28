@@ -1,21 +1,14 @@
 // ─────────────────────────────────────────────────────────────────
-// Dashboard — thin shell. Routes between sections. Nothing else.
-//
-// ARCHITECTURE RULES (never violate these):
-// 1. No business logic here — lives in sections/hooks/config
-// 2. No styles here — lives in index.css
-// 3. No data constants here — lives in config/modules.js
-// 4. Every section is wrapped in ErrorBoundary
-// 5. ChatPanel is a stable top-level component, never re-created
+// Dashboard.jsx — thin shell, now passes userId to sections
+// and coordinates refresh when data changes
 // ─────────────────────────────────────────────────────────────────
-import { useState, useEffect } from "react";
-import { useAuth }         from "../hooks/useAuth";
-import { Sidebar }         from "../components/Sidebar";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth }           from "../hooks/useAuth";
+import { Sidebar }           from "../components/Sidebar";
 import { Topbar, MobileBar } from "../components/Topbar";
-import { ErrorBoundary }   from "../components/ErrorBoundary";
-import { MODULES }         from "../config/modules";
+import { ErrorBoundary }     from "../components/ErrorBoundary";
+import { MODULES }           from "../config/modules";
 
-// Sections — each isolated in its own file
 import { Home }         from "./sections/Home";
 import { ChatPanel }    from "./sections/ChatPanel";
 import { BrainDump }    from "./sections/BrainDump";
@@ -23,40 +16,41 @@ import { FocusSection } from "./sections/FocusSection";
 import { ModulePage }   from "./sections/ModulePage";
 import { Settings }     from "./sections/Settings";
 
-// Clock helper
+// Clock
 function useClock() {
-  const [clock, setClock] = useState(formatClock());
+  const fmt = () =>
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+    "  ·  " +
+    new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  const [clock, setClock] = useState(fmt);
   useEffect(() => {
-    const t = setInterval(() => setClock(formatClock()), 30000);
+    const t = setInterval(() => setClock(fmt()), 30000);
     return () => clearInterval(t);
   }, []);
   return clock;
 }
-function formatClock() {
-  return (
-    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
-    "  ·  " +
-    new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })
-  );
-}
 
-// ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user, firstName, loading, logout } = useAuth();
   const clock = useClock();
 
-  const [section,   setSection]   = useState("home");
+  const [section,     setSection]     = useState("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // refreshKey increments when data changes → Home re-fetches KPIs
+  const [refreshKey,  setRefreshKey]  = useState(0);
 
-  const activeMod = MODULES.find(m => m.id === section);
-  const isModulePage = activeMod && !["home","chat","dump","focus","settings"].includes(section);
+  const onDataChanged = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
 
   function navigate(id) {
     setSection(id);
     setSidebarOpen(false);
   }
 
-  // Loading state while auth resolves
+  const activeMod    = MODULES.find(m => m.id === section);
+  const isModulePage = activeMod && !["home","chat","dump","focus","settings"].includes(section);
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -66,13 +60,12 @@ export default function Dashboard() {
     );
   }
 
+  const userId = user?.id;
+
   return (
     <div className="app-shell">
-
-      {/* Background ambient glow */}
       <div className="bg-glow" aria-hidden="true" />
 
-      {/* Sidebar — isolated, receives everything as props */}
       <Sidebar
         section={section}
         onNavigate={navigate}
@@ -83,13 +76,9 @@ export default function Dashboard() {
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Main area */}
       <main className="app-main">
-
-        {/* Mobile topbar */}
         <MobileBar onMenuOpen={() => setSidebarOpen(true)} />
 
-        {/* Desktop topbar */}
         <Topbar
           section={section}
           clock={clock}
@@ -97,11 +86,15 @@ export default function Dashboard() {
           onLogout={logout}
         />
 
-        {/* Section content — every section in its own ErrorBoundary */}
-
         {section === "home" && (
           <ErrorBoundary key="home">
-            <Home firstName={firstName} clock={clock} onNavigate={navigate} />
+            <Home
+              firstName={firstName}
+              userId={userId}
+              clock={clock}
+              onNavigate={navigate}
+              refreshKey={refreshKey}
+            />
           </ErrorBoundary>
         )}
 
@@ -113,13 +106,19 @@ export default function Dashboard() {
 
         {section === "dump" && (
           <ErrorBoundary key="dump">
-            <BrainDump />
+            <BrainDump
+              userId={userId}
+              onChronicleAdded={onDataChanged}
+            />
           </ErrorBoundary>
         )}
 
         {section === "focus" && (
           <ErrorBoundary key="focus">
-            <FocusSection />
+            <FocusSection
+              userId={userId}
+              onSessionComplete={onDataChanged}
+            />
           </ErrorBoundary>
         )}
 
@@ -134,7 +133,6 @@ export default function Dashboard() {
             <ModulePage module={activeMod} onNavigate={navigate} />
           </ErrorBoundary>
         )}
-
       </main>
     </div>
   );

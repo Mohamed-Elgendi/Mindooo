@@ -1,137 +1,239 @@
-import { useState } from 'react'
-import { supabase } from '../supabase'
-import { Link, useNavigate } from 'react-router-dom'
-import { Mail, Loader2, ChevronLeft } from 'lucide-react'
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "../supabase";
+
+const S = {
+  page: {
+    minHeight: "100vh",
+    background: "#09090f",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px 16px",
+    position: "relative",
+    overflow: "hidden",
+    fontFamily: "'Inter', sans-serif",
+  },
+  glowA: {
+    position: "fixed",
+    width: "600px", height: "600px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)",
+    top: "-200px", left: "-100px",
+    pointerEvents: "none", zIndex: 0,
+  },
+  glowB: {
+    position: "fixed",
+    width: "500px", height: "500px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
+    bottom: "-150px", right: "-100px",
+    pointerEvents: "none", zIndex: 0,
+  },
+  card: {
+    position: "relative", zIndex: 1,
+    width: "100%", maxWidth: "420px",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: "24px",
+    padding: "40px 36px",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+  },
+  logo: {
+    fontFamily: "'Sora', sans-serif",
+    fontWeight: 800,
+    fontSize: "24px",
+    letterSpacing: "-0.04em",
+    background: "linear-gradient(135deg,#8b5cf6,#6366f1,#3b82f6)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+    textAlign: "center",
+    display: "block",
+    marginBottom: "24px",
+  },
+  icon: {
+    width: "56px", height: "56px",
+    borderRadius: "16px",
+    background: "rgba(139,92,246,0.12)",
+    border: "1px solid rgba(139,92,246,0.25)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    margin: "0 auto 20px",
+    fontSize: "24px",
+  },
+  title: {
+    fontFamily: "'Sora', sans-serif",
+    fontWeight: 800,
+    fontSize: "22px",
+    letterSpacing: "-0.03em",
+    color: "#f8f8ff",
+    textAlign: "center",
+    marginBottom: "8px",
+  },
+  subtitle: {
+    fontSize: "13px",
+    color: "rgba(248,248,255,0.45)",
+    textAlign: "center",
+    lineHeight: 1.65,
+    marginBottom: "28px",
+  },
+  label: {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "rgba(248,248,255,0.6)",
+    marginBottom: "6px",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+  },
+  input: {
+    width: "100%",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "12px",
+    padding: "12px 16px",
+    color: "#f8f8ff",
+    fontSize: "14px",
+    fontFamily: "'Inter', sans-serif",
+    outline: "none",
+    transition: "border-color 0.2s, box-shadow 0.2s",
+    display: "block",
+    boxSizing: "border-box",
+    marginBottom: "20px",
+  },
+  inputFocus: {
+    borderColor: "rgba(139,92,246,0.6)",
+    boxShadow: "0 0 0 3px rgba(139,92,246,0.12)",
+    background: "rgba(255,255,255,0.08)",
+  },
+  btnPrimary: {
+    width: "100%",
+    background: "linear-gradient(135deg,#8b5cf6,#6366f1,#3b82f6)",
+    border: "none",
+    borderRadius: "12px",
+    padding: "13px",
+    color: "#fff",
+    fontSize: "14px",
+    fontWeight: 700,
+    fontFamily: "'Inter', sans-serif",
+    cursor: "pointer",
+    transition: "opacity 0.2s, transform 0.15s",
+    letterSpacing: "0.02em",
+    marginBottom: "20px",
+  },
+  backLink: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "6px",
+    fontSize: "13px",
+    color: "rgba(248,248,255,0.4)",
+    textDecoration: "none",
+    transition: "color 0.15s",
+  },
+  alert: {
+    borderRadius: "10px",
+    padding: "12px 14px",
+    fontSize: "13px",
+    marginBottom: "20px",
+    lineHeight: 1.5,
+  },
+  alertError: {
+    background: "rgba(239,68,68,0.1)",
+    border: "1px solid rgba(239,68,68,0.25)",
+    color: "#f87171",
+  },
+  alertSuccess: {
+    background: "rgba(34,197,94,0.1)",
+    border: "1px solid rgba(34,197,94,0.25)",
+    color: "#4ade80",
+  },
+};
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const [success, setSuccess] = useState(false)
-  const navigate = useNavigate()
-
-  function validateEmail(val) {
-    if (!val) return ''
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Please enter a valid email address'
-    return ''
-  }
+  const [email,   setEmail]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent,    setSent]    = useState(false);
+  const [error,   setError]   = useState("");
+  const [focused, setFocused] = useState(false);
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    const emailErr = validateEmail(email)
-    if (!email) { setEmailError('Email is required'); return }
-    if (emailErr) { setEmailError(emailErr); return }
-    setLoading(true)
-    setError('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/reset-password'
-    })
-    if (error) { setError(error.message) } else { setSuccess(true) }
-    setLoading(false)
-  }
-
-  if (success) {
-    return (
-      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',background:'#09090f',position:'relative'}}>
-        <div className="glow-purple" />
-        <div style={{width:'100%',maxWidth:'480px',position:'relative',zIndex:1}}>
-          <div style={{textAlign:'center',marginBottom:'32px'}}>
-            <div className="axis-logo gradient-text" style={{marginBottom:'8px'}}>Mindoo</div>
-          </div>
-          <div className="glass-card" style={{padding:'clamp(24px, 5vw, 40px)',textAlign:'center'}}>
-            <div style={{width:'64px',height:'64px',borderRadius:'20px',background:'rgba(139,92,246,0.1)',border:'1px solid rgba(139,92,246,0.2)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}>
-              <Mail size={28} style={{color:'#a78bfa'}} />
-            </div>
-            <h2 style={{fontFamily:'Sora,sans-serif',fontWeight:'700',fontSize:'24px',color:'#ffffff',letterSpacing:'-0.02em',marginBottom:'8px'}}>Check your email</h2>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',marginBottom:'4px'}}>We sent a password reset link to</p>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'15px',fontWeight:'600',color:'#ffffff',marginBottom:'8px',wordBreak:'break-all'}}>{email}</p>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(255,255,255,0.3)',marginBottom:'32px',lineHeight:'1.6'}}>
-              Click the link in the email to reset your password. Check your spam folder if you do not see it.
-            </p>
-            <button onClick={() => navigate('/signin')} className="btn-primary">
-              <span>Back to Sign In</span>
-            </button>
-          </div>
-        </div>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+    e.preventDefault();
+    setError("");
+    if (!email) { setError("Please enter your email address."); return; }
+    setLoading(true);
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (err) throw err;
+      setSent(true);
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',background:'#09090f',position:'relative'}}>
-      <div className="glow-purple" />
-      <div style={{width:'100%',maxWidth:'480px',position:'relative',zIndex:1}}>
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-        {/* HEADER */}
-        <div style={{textAlign:'center',marginBottom:'32px'}}>
-          <div className="axis-logo gradient-text" style={{marginBottom:'8px'}}>Mindoo</div>
-          <p style={{color:'rgba(255,255,255,0.4)',fontSize:'15px',fontFamily:'Inter,sans-serif'}}>From chaos to clarity. Now do more.</p>
-        </div>
+      <div style={S.page}>
+        <div style={S.glowA} />
+        <div style={S.glowB} />
 
-        {/* CARD */}
-        <div className="glass-card" style={{padding:'clamp(24px, 5vw, 40px)'}}>
-          <button
-            onClick={() => navigate('/signin')}
-            style={{display:'flex',alignItems:'center',gap:'6px',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.4)',fontSize:'13px',fontFamily:'Inter,sans-serif',padding:'0',marginBottom:'24px'}}
-          >
-            <ChevronLeft size={14} /> Back to Sign In
-          </button>
+        <div style={S.card}>
+          <span style={S.logo}>Mindoo</span>
 
-          <h2 style={{fontFamily:'Sora,sans-serif',fontWeight:'700',fontSize:'22px',color:'#ffffff',letterSpacing:'-0.02em',marginBottom:'8px'}}>Forgot your password?</h2>
-          <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',marginBottom:'28px',lineHeight:'1.6'}}>
-            No worries. Enter your email address and we will send you a link to reset your password.
+          <div style={S.icon}>🔑</div>
+          <h1 style={S.title}>{sent ? "Check your inbox" : "Reset your password"}</h1>
+          <p style={S.subtitle}>
+            {sent
+              ? `We sent a reset link to ${email}. Check your inbox — it expires in 1 hour.`
+              : "Enter your email and we'll send you a link to reset your password."}
           </p>
 
-          {error && (
-            <div className="alert-error" style={{marginBottom:'16px'}}>
-              <div style={{display:'flex',gap:'10px',alignItems:'flex-start'}}>
-                <span style={{color:'#f87171',flexShrink:0}}>✗</span>
-                <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(248,113,113,0.9)'}}>{error}</p>
-              </div>
+          {error && <div style={{ ...S.alert, ...S.alertError }}>{error}</div>}
+
+          {!sent ? (
+            <form onSubmit={handleSubmit} noValidate>
+              <label style={S.label}>Email address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                style={{ ...S.input, ...(focused ? S.inputFocus : {}) }}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                style={{ ...S.btnPrimary, opacity: loading ? 0.6 : 1 }}
+              >
+                {loading ? "Sending…" : "Send Reset Link"}
+              </button>
+            </form>
+          ) : (
+            <div style={{ ...S.alert, ...S.alertSuccess, textAlign: "center", marginBottom: "24px" }}>
+              ✓ Reset link sent to {email}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:'16px'}}>
-            <div>
-              <label className="label-text">Email address</label>
-              <div style={{position:'relative'}}>
-                <Mail size={16} style={{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',color:'rgba(255,255,255,0.25)',pointerEvents:'none'}} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setEmailError(validateEmail(e.target.value)) }}
-                  autoFocus
-                  className={`glass-input ${emailError ? 'error' : ''}`}
-                  style={{paddingLeft:'42px'}}
-                  placeholder="name@example.com"
-                  required
-                />
-              </div>
-              {emailError && <p className="error-message">✗ {emailError}</p>}
-            </div>
-
-            <button type="submit" disabled={loading} className="btn-primary">
-              {loading
-                ? <><Loader2 size={16} style={{animation:'spin 1s linear infinite'}}/><span>Sending...</span></>
-                : <span>Send reset link</span>
-              }
-            </button>
-          </form>
-
-          <div style={{marginTop:'24px',paddingTop:'24px',borderTop:'1px solid rgba(255,255,255,0.06)',textAlign:'center'}}>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.25)',marginBottom:'12px'}}>
-              Forgot which email you used? Check your password manager or inbox for a message from Mindoo.
-            </p>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)'}}>
-              Remember your password?{' '}
-              <Link to="/signin" style={{color:'#a78bfa',textDecoration:'none',fontWeight:'600'}}>Sign in</Link>
-            </p>
-          </div>
+          <Link to="/signin" style={S.backLink}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back to Sign In
+          </Link>
         </div>
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </div>
-  )
+    </>
+  );
 }

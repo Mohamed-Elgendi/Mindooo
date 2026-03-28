@@ -1,300 +1,452 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../supabase'
-import { useNavigate, Link } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "../supabase";
+
+// ─── Inline styles — self-contained, no external CSS dependency ───────────────
+const S = {
+  page: {
+    minHeight: "100vh",
+    background: "#09090f",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px 16px",
+    position: "relative",
+    overflow: "hidden",
+    fontFamily: "'Inter', sans-serif",
+  },
+  glowA: {
+    position: "fixed",
+    width: "600px", height: "600px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)",
+    top: "-200px", left: "-100px",
+    pointerEvents: "none", zIndex: 0,
+  },
+  glowB: {
+    position: "fixed",
+    width: "500px", height: "500px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
+    bottom: "-150px", right: "-100px",
+    pointerEvents: "none", zIndex: 0,
+  },
+  card: {
+    position: "relative", zIndex: 1,
+    width: "100%", maxWidth: "440px",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: "24px",
+    padding: "40px 36px",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+  },
+  logo: {
+    fontFamily: "'Sora', sans-serif",
+    fontWeight: 800,
+    fontSize: "26px",
+    letterSpacing: "-0.04em",
+    background: "linear-gradient(135deg,#8b5cf6,#6366f1,#3b82f6)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+    textAlign: "center",
+    marginBottom: "6px",
+    display: "block",
+  },
+  tagline: {
+    textAlign: "center",
+    fontSize: "13px",
+    color: "rgba(248,248,255,0.45)",
+    marginBottom: "28px",
+    lineHeight: 1.5,
+  },
+  divider: {
+    height: "1px",
+    background: "rgba(255,255,255,0.08)",
+    margin: "24px 0",
+  },
+  label: {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "rgba(248,248,255,0.6)",
+    marginBottom: "6px",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+  },
+  inputWrap: {
+    position: "relative",
+    marginBottom: "16px",
+  },
+  input: {
+    width: "100%",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "12px",
+    padding: "12px 16px",
+    color: "#f8f8ff",
+    fontSize: "14px",
+    fontFamily: "'Inter', sans-serif",
+    outline: "none",
+    transition: "border-color 0.2s, box-shadow 0.2s, background 0.2s",
+    display: "block",
+    boxSizing: "border-box",
+  },
+  inputFocus: {
+    borderColor: "rgba(139,92,246,0.6)",
+    boxShadow: "0 0 0 3px rgba(139,92,246,0.12)",
+    background: "rgba(255,255,255,0.08)",
+  },
+  eyeBtn: {
+    position: "absolute",
+    right: "14px", top: "50%",
+    transform: "translateY(-50%)",
+    background: "none", border: "none",
+    cursor: "pointer",
+    color: "rgba(248,248,255,0.35)",
+    display: "flex", alignItems: "center",
+    padding: "4px",
+    transition: "color 0.15s",
+  },
+  forgotRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "6px",
+  },
+  forgotLink: {
+    fontSize: "12px",
+    color: "rgba(139,92,246,0.9)",
+    textDecoration: "none",
+    fontWeight: 500,
+    transition: "color 0.15s",
+  },
+  checkboxCard: {
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "12px",
+    padding: "14px 16px",
+    marginBottom: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  checkRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "10px",
+    cursor: "pointer",
+  },
+  checkbox: {
+    width: "18px", height: "18px",
+    minWidth: "18px",
+    borderRadius: "5px",
+    border: "1.5px solid rgba(255,255,255,0.2)",
+    background: "rgba(255,255,255,0.05)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    cursor: "pointer",
+    transition: "all 0.15s",
+    marginTop: "1px",
+  },
+  checkboxOn: {
+    background: "linear-gradient(135deg,#8b5cf6,#6366f1)",
+    border: "1.5px solid rgba(139,92,246,0.8)",
+  },
+  checkLabel: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "rgba(248,248,255,0.85)",
+    lineHeight: 1.3,
+  },
+  checkSub: {
+    fontSize: "11px",
+    color: "rgba(248,248,255,0.35)",
+    marginTop: "1px",
+  },
+  btnPrimary: {
+    width: "100%",
+    background: "linear-gradient(135deg,#8b5cf6,#6366f1,#3b82f6)",
+    border: "none",
+    borderRadius: "12px",
+    padding: "13px",
+    color: "#fff",
+    fontSize: "14px",
+    fontWeight: 700,
+    fontFamily: "'Inter', sans-serif",
+    cursor: "pointer",
+    transition: "opacity 0.2s, transform 0.15s",
+    letterSpacing: "0.02em",
+    marginBottom: "16px",
+  },
+  orRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "16px",
+  },
+  orLine: { flex: 1, height: "1px", background: "rgba(255,255,255,0.08)" },
+  orText: { fontSize: "12px", color: "rgba(248,248,255,0.3)", whiteSpace: "nowrap" },
+  googleBtn: {
+    width: "100%",
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "12px",
+    padding: "11px 16px",
+    color: "rgba(248,248,255,0.85)",
+    fontSize: "13.5px",
+    fontWeight: 600,
+    fontFamily: "'Inter', sans-serif",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    transition: "all 0.2s",
+    marginBottom: "24px",
+  },
+  bottomText: {
+    textAlign: "center",
+    fontSize: "13px",
+    color: "rgba(248,248,255,0.4)",
+  },
+  bottomLink: {
+    color: "#8b5cf6",
+    fontWeight: 600,
+    textDecoration: "none",
+  },
+  alert: {
+    borderRadius: "10px",
+    padding: "11px 14px",
+    fontSize: "13px",
+    marginBottom: "16px",
+    lineHeight: 1.5,
+  },
+  alertError: {
+    background: "rgba(239,68,68,0.1)",
+    border: "1px solid rgba(239,68,68,0.25)",
+    color: "#f87171",
+  },
+  alertSuccess: {
+    background: "rgba(34,197,94,0.1)",
+    border: "1px solid rgba(34,197,94,0.25)",
+    color: "#4ade80",
+  },
+  hint: {
+    textAlign: "center",
+    fontSize: "12px",
+    color: "rgba(248,248,255,0.28)",
+    lineHeight: 1.6,
+    marginTop: "20px",
+  },
+};
+
+// Google SVG logo
+const GoogleLogo = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.4 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-8 20-20 0-1.3-.1-2.7-.4-4z"/>
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5.1l-6.3-5.2C29.4 35.5 26.8 36 24 36c-5.2 0-9.7-2.6-11.3-7H6.1c3.3 6.5 10 11 17.9 11z"/>
+    <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.2-2.2 4-4 5.3l6.3 5.2C41.5 35.2 44 30 44 24c0-1.3-.1-2.7-.4-4z"/>
+  </svg>
+);
 
 export default function SignIn() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [rememberEmail, setRememberEmail] = useState(false)
-  const [rememberSession, setRememberSession] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const [showMotivation, setShowMotivation] = useState(false)
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const [email,       setEmail]       = useState("");
+  const [password,    setPassword]    = useState("");
+  const [showPass,    setShowPass]    = useState(false);
+  const [remember,    setRemember]    = useState(true);
+  const [keepSigned,  setKeepSigned]  = useState(true);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState("");
+  const [lastMethod,  setLastMethod]  = useState("");
+  const [focusedField, setFocused]    = useState("");
 
+  // Load remembered email
   useEffect(() => {
-    const savedEmail = localStorage.getItem('axis_remembered_email')
-    const rememberedEmail = localStorage.getItem('axis_remember_email') === 'true'
-    const rememberedSession = localStorage.getItem('axis_remember_session') === 'true'
-    if (savedEmail && rememberedEmail) { setEmail(savedEmail); setRememberEmail(true) }
-    if (rememberedSession) setRememberSession(true)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session && rememberedSession) {
-        const expiresAt = localStorage.getItem('axis_session_expires')
-        if (expiresAt && Date.now() < parseInt(expiresAt)) navigate('/dashboard')
-      }
-    })
-  }, [])
-
-  function validateEmail(val) {
-    if (!val) return ''
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Please enter a valid email address'
-    return ''
-  }
-
-  function handleEmailChange(e) {
-    setEmail(e.target.value)
-    setEmailError(validateEmail(e.target.value))
-    setShowMotivation(false)
-    setError('')
-  }
+    const saved = localStorage.getItem("mindoo_email");
+    if (saved) setEmail(saved);
+    const method = localStorage.getItem("mindoo_last_method");
+    if (method) setLastMethod(method);
+  }, []);
 
   async function handleSignIn(e) {
-    e.preventDefault()
-    const emailErr = validateEmail(email)
-    if (emailErr) { setEmailError(emailErr); return }
-    setLoading(true)
-    setError('')
-    setShowMotivation(false)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      if (error.message === 'Invalid login credentials') {
-        setError('We could not find an account with these credentials.')
-        setShowMotivation(true)
-      } else {
-        setError(error.message)
-      }
-    } else {
-      if (rememberEmail) {
-        localStorage.setItem('axis_remembered_email', email)
-        localStorage.setItem('axis_remember_email', 'true')
-      } else {
-        localStorage.removeItem('axis_remembered_email')
-        localStorage.removeItem('axis_remember_email')
-      }
-      if (rememberSession) {
-        localStorage.setItem('axis_remember_session', 'true')
-        const thirtyDays = Date.now() + 30 * 24 * 60 * 60 * 1000
-        localStorage.setItem('axis_session_expires', thirtyDays.toString())
-      } else {
-        localStorage.removeItem('axis_remember_session')
-        localStorage.removeItem('axis_session_expires')
-      }
-      localStorage.setItem('axis_last_method', 'email')
-      navigate('/dashboard')
+    e.preventDefault();
+    setError("");
+    if (!email || !password) { setError("Please enter your email and password."); return; }
+    setLoading(true);
+    try {
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) throw err;
+      if (remember) localStorage.setItem("mindoo_email", email);
+      else localStorage.removeItem("mindoo_email");
+      localStorage.setItem("mindoo_last_method", "email");
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message || "Sign in failed. Check your email and password.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false)
   }
 
-  async function handleGoogleSignIn() {
-    localStorage.setItem('axis_last_method', 'google')
-    if (rememberSession) {
-      localStorage.setItem('axis_remember_session', 'true')
-      const thirtyDays = Date.now() + 30 * 24 * 60 * 60 * 1000
-      localStorage.setItem('axis_session_expires', thirtyDays.toString())
+  async function handleGoogle() {
+    setError("");
+    setLoading(true);
+    try {
+      const { error: err } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/dashboard` },
+      });
+      if (err) throw err;
+      localStorage.setItem("mindoo_last_method", "google");
+    } catch (err) {
+      setError(err.message || "Google sign in failed.");
+      setLoading(false);
     }
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/dashboard',
-        queryParams: { prompt: 'select_account' }
-      }
-    })
   }
 
-  const lastMethod = localStorage.getItem('axis_last_method')
+  function inputStyle(field) {
+    return {
+      ...S.input,
+      ...(focusedField === field ? S.inputFocus : {}),
+      paddingRight: field === "password" ? "44px" : "16px",
+    };
+  }
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',background:'#09090f',position:'relative',overflow:'hidden'}}>
-      <div className="glow-purple" />
+    <>
+      {/* Load fonts */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-      <div style={{width:'100%',maxWidth:'480px',position:'relative',zIndex:1}}>
+      <div style={S.page}>
+        <div style={S.glowA} />
+        <div style={S.glowB} />
 
-        {/* HEADER */}
-        <div style={{textAlign:'center',marginBottom:'32px'}}>
-          <div className="axis-logo gradient-text" style={{marginBottom:'8px'}}>Mindoo</div>
-          <p style={{color:'rgba(255,255,255,0.4)',fontSize:'15px',fontFamily:'Inter,sans-serif'}}>
-            From chaos to clarity. Now do more.
-          </p>
-          {lastMethod && (
-            <p style={{color:'#a78bfa',fontSize:'12px',marginTop:'8px',fontFamily:'Inter,sans-serif'}}>
-              You last signed in with {lastMethod === 'google' ? 'Google' : 'email'}
-            </p>
-          )}
-        </div>
+        <div style={S.card}>
+          {/* Logo */}
+          <span style={S.logo}>Mindoo</span>
+          <p style={S.tagline}>From chaos to clarity. Now do more.</p>
 
-        {/* MOTIVATION BOX */}
-        {showMotivation && (
-          <div style={{
-            borderRadius:'20px',
-            padding:'28px',
-            marginBottom:'16px',
-            background:'rgba(34,197,94,0.06)',
-            border:'1px solid rgba(34,197,94,0.18)',
-          }}>
-            <div style={{
-              width:'40px',height:'40px',borderRadius:'12px',
-              background:'rgba(34,197,94,0.12)',border:'1px solid rgba(34,197,94,0.2)',
-              display:'flex',alignItems:'center',justifyContent:'center',
-              marginBottom:'16px',fontSize:'20px'
-            }}>✦</div>
-            <p style={{
-              fontFamily:'Sora,sans-serif',fontWeight:'700',fontSize:'18px',
-              color:'#ffffff',lineHeight:'1.35',letterSpacing:'-0.02em',marginBottom:'12px'
-            }}>
-              You are one step away from something powerful.
-            </p>
-            <p style={{
-              fontFamily:'Inter,sans-serif',fontSize:'14px',
-              color:'rgba(255,255,255,0.5)',lineHeight:'1.75',marginBottom:'12px'
-            }}>
-              Every great thinker, creator, and builder started exactly where you are right now — with a thought they could not yet put into words.
-            </p>
-            <p style={{
-              fontFamily:'Inter,sans-serif',fontSize:'14px',
-              color:'rgba(255,255,255,0.5)',lineHeight:'1.75',marginBottom:'20px'
-            }}>
-              Mindoo was built for that exact moment. It takes less than 60 seconds to unlock your second brain. No credit card. No complexity. Just you and your ideas — finally organized, finally moving forward.
-            </p>
-            <div style={{
-              background:'rgba(34,197,94,0.08)',border:'1px solid rgba(34,197,94,0.15)',
-              borderRadius:'12px',padding:'14px 16px'
-            }}>
-              <p style={{
-                fontFamily:'Inter,sans-serif',fontSize:'13px',
-                color:'rgba(134,239,172,0.9)',lineHeight:'1.6',fontWeight:'500'
-              }}>
-                Ready to start? Hit <span style={{color:'#86efac',fontWeight:'700'}}>"Sign up free"</span> below — it is waiting for you.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* FORM CARD */}
-        <div className="glass-card" style={{padding:'clamp(24px, 5vw, 40px)'}}>
-
-          {error && (
-            <div className="alert-error" style={{marginBottom:'20px'}}>
-              <div style={{display:'flex',alignItems:'flex-start',gap:'10px'}}>
-                <span style={{color:'#f87171',fontSize:'16px',marginTop:'1px',flexShrink:0}}>✗</span>
-                <div>
-                  <p style={{fontFamily:'Inter,sans-serif',fontWeight:'600',color:'#fca5a5',fontSize:'13px',marginBottom:'4px'}}>
-                    Sign in failed
-                  </p>
-                  <p style={{fontFamily:'Inter,sans-serif',color:'rgba(248,113,113,0.8)',fontSize:'12px',lineHeight:'1.5'}}>
-                    {error} Please check your email and password and try again.
-                  </p>
-                </div>
-              </div>
+          {/* Last sign-in hint */}
+          {lastMethod === "google" && (
+            <div style={{ ...S.alert, ...S.alertSuccess, textAlign: "center", marginBottom: "20px" }}>
+              ✓ You last signed in with Google
             </div>
           )}
 
-          <form onSubmit={handleSignIn} style={{display:'flex',flexDirection:'column',gap:'16px',marginBottom:'20px'}}>
+          {/* Error */}
+          {error && <div style={{ ...S.alert, ...S.alertError }}>{error}</div>}
 
-            <div>
-              <label className="label-text">Email</label>
-              <div style={{position:'relative'}}>
-                <Mail size={16} style={{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',color:'rgba(255,255,255,0.25)',pointerEvents:'none'}} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={handleEmailChange}
-                  autoFocus
-                  className={`glass-input ${emailError ? 'error' : ''}`}
-                  style={{paddingLeft:'42px'}}
-                  placeholder="name@example.com"
-                  required
-                />
-              </div>
-              {emailError && <p className="error-message">✗ {emailError}</p>}
+          {/* Form */}
+          <form onSubmit={handleSignIn} noValidate>
+            {/* Email */}
+            <label style={S.label}>Email</label>
+            <div style={S.inputWrap}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onFocus={() => setFocused("email")}
+                onBlur={() => setFocused("")}
+                style={inputStyle("email")}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
             </div>
 
-            <div>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
-                <label className="label-text" style={{margin:0}}>Password</label>
-                <Link to="/forgot-password" style={{fontSize:'12px',color:'#a78bfa',textDecoration:'none',fontFamily:'Inter,sans-serif'}}>
-                  Forgot password?
-                </Link>
-              </div>
-              <div style={{position:'relative'}}>
-                <Lock size={16} style={{position:'absolute',left:'14px',top:'50%',transform:'translateY(-50%)',color:'rgba(255,255,255,0.25)',pointerEvents:'none'}} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="glass-input"
-                  style={{paddingLeft:'42px',paddingRight:'50px'}}
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',display:'flex',alignItems:'center',padding:'0'}}
-                >
-                  {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
-                </button>
-              </div>
+            {/* Password */}
+            <div style={S.forgotRow}>
+              <label style={{ ...S.label, margin: 0 }}>Password</label>
+              <Link to="/forgot-password" style={S.forgotLink}>Forgot password?</Link>
+            </div>
+            <div style={S.inputWrap}>
+              <input
+                type={showPass ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onFocus={() => setFocused("password")}
+                onBlur={() => setFocused("")}
+                style={inputStyle("password")}
+                placeholder="Your password"
+                autoComplete="current-password"
+              />
+              <button type="button" style={S.eyeBtn} onClick={() => setShowPass(p => !p)}>
+                {showPass ? (
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                ) : (
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                )}
+              </button>
             </div>
 
-            <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',padding:'14px 16px',display:'flex',flexDirection:'column',gap:'12px'}}>
-              <label style={{display:'flex',alignItems:'flex-start',gap:'10px',cursor:'pointer'}}>
-                <input
-                  type="checkbox"
-                  checked={rememberEmail}
-                  onChange={e => setRememberEmail(e.target.checked)}
-                  style={{width:'16px',height:'16px',accentColor:'#8b5cf6',marginTop:'2px',flexShrink:0}}
-                />
-                <div>
-                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(255,255,255,0.7)',fontWeight:'500',marginBottom:'2px'}}>Remember my email</p>
-                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>Pre-fills your email next time</p>
+            {/* Checkboxes */}
+            <div style={S.checkboxCard}>
+              <div style={S.checkRow} onClick={() => setRemember(r => !r)}>
+                <div style={{ ...S.checkbox, ...(remember ? S.checkboxOn : {}) }}>
+                  {remember && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </div>
-              </label>
-              <div style={{height:'1px',background:'rgba(255,255,255,0.05)'}}/>
-              <label style={{display:'flex',alignItems:'flex-start',gap:'10px',cursor:'pointer'}}>
-                <input
-                  type="checkbox"
-                  checked={rememberSession}
-                  onChange={e => setRememberSession(e.target.checked)}
-                  style={{width:'16px',height:'16px',accentColor:'#8b5cf6',marginTop:'2px',flexShrink:0}}
-                />
                 <div>
-                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(255,255,255,0.7)',fontWeight:'500',marginBottom:'2px'}}>Keep me signed in for 30 days</p>
-                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.3)'}}>Stay logged in automatically</p>
+                  <div style={S.checkLabel}>Remember my email</div>
+                  <div style={S.checkSub}>Pre-fills your email next time</div>
                 </div>
-              </label>
+              </div>
+              <div style={S.checkRow} onClick={() => setKeepSigned(k => !k)}>
+                <div style={{ ...S.checkbox, ...(keepSigned ? S.checkboxOn : {}) }}>
+                  {keepSigned && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </div>
+                <div>
+                  <div style={S.checkLabel}>Keep me signed in for 30 days</div>
+                  <div style={S.checkSub}>Stay logged in automatically</div>
+                </div>
+              </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary">
-              {loading
-                ? <><Loader2 size={16} style={{animation:'spin 1s linear infinite'}}/><span>Signing in...</span></>
-                : <span>Sign In</span>
-              }
+            {/* Sign in button */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ ...S.btnPrimary, opacity: loading ? 0.6 : 1 }}
+              onMouseEnter={e => { if (!loading) e.target.style.opacity = "0.88"; e.target.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={e => { e.target.style.opacity = loading ? "0.6" : "1"; e.target.style.transform = "translateY(0)"; }}
+            >
+              {loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
 
-          <div className="divider-line"><span>or continue with</span></div>
+          {/* Divider */}
+          <div style={S.orRow}>
+            <div style={S.orLine} />
+            <span style={S.orText}>or continue with</span>
+            <div style={S.orLine} />
+          </div>
 
-          <button onClick={handleGoogleSignIn} className="btn-secondary" style={{marginBottom:'24px'}}>
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            <span>Continue with Google</span>
+          {/* Google */}
+          <button
+            onClick={handleGoogle}
+            disabled={loading}
+            style={{ ...S.googleBtn, opacity: loading ? 0.6 : 1 }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+          >
+            <GoogleLogo />
+            Continue with Google
           </button>
 
-          <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:'20px'}}>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.25)',textAlign:'center',marginBottom:'12px'}}>
-              Forgot which email you used? Check your password manager or inbox for a message from Mindoo.
-            </p>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',textAlign:'center'}}>
-              Do not have an account?{' '}
-              <Link to="/signup" style={{color:'#a78bfa',textDecoration:'none',fontWeight:'600'}}>
-                Sign up free
-              </Link>
-            </p>
-          </div>
+          {/* Sign up link */}
+          <p style={S.bottomText}>
+            Do not have an account?{" "}
+            <Link to="/signup" style={S.bottomLink}>Sign up free</Link>
+          </p>
+
+          {/* Hint */}
+          <p style={S.hint}>
+            Forgot which email you used? Check your password manager or inbox for a message from Mindoo.
+          </p>
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-    </div>
-  )
+    </>
+  );
 }

@@ -1,28 +1,15 @@
 // ─────────────────────────────────────────────────────────────────
-// Home — dashboard overview section
+// Home.jsx — Dashboard overview with real data
 // ─────────────────────────────────────────────────────────────────
 import { MODULES } from "../../config/modules";
 import { Icon } from "../../components/Icons";
+import { useDashboardData } from "../../hooks/useData";
 
 function greet(name) {
   const h = new Date().getHours();
   const g = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   return `${g}, ${name || "Boss"}.`;
 }
-
-const KPI_DATA = [
-  { label: "Focus Hours",   value: "4.2h",   change: "+1.1h this week",  up: true  },
-  { label: "Brain Dumps",   value: "12",     change: "+3 this week",     up: true  },
-  { label: "Habit Streak",  value: "7 days", change: "🔥 Keep going",    up: true  },
-  { label: "Clarity Score", value: "78%",    change: "+5% this week",    up: true  },
-];
-
-const INSIGHTS = [
-  { emoji: "📈", bg: "rgba(139,92,246,.1)", title: "Pattern detected",  desc: "You focus 40% better Tuesdays 9–11am. That window opens in 47 minutes." },
-  { emoji: "🌤", bg: "rgba(6,182,212,.1)",  title: "Emotional weather",  desc: "Calm baseline. Good conditions for deep work and hard conversations."  },
-  { emoji: "⚡", bg: "rgba(245,158,11,.1)", title: "Identity win",       desc: "You resisted 3 distractions yesterday. Disciplined identity at 83%."   },
-  { emoji: "🔥", bg: "rgba(34,197,94,.1)",  title: "Habit momentum",     desc: "7-day streak on your #1 habit. Automaticity threshold in 23 days."     },
-];
 
 const IDENTITY = [
   { label: "Resilient",   pct: 89, color: "#a78bfa" },
@@ -31,7 +18,57 @@ const IDENTITY = [
   { label: "Confident",   pct: 45, color: "#4ade80" },
 ];
 
-export function Home({ firstName, clock, onNavigate }) {
+export function Home({ firstName, userId, clock, onNavigate, refreshKey }) {
+  const { stats, loading } = useDashboardData(userId);
+
+  // Build KPIs from real data, fall back to dashes while loading
+  const kpis = [
+    {
+      label:  "Focus Hours",
+      value:  loading ? "—" : stats ? `${(stats.focusMinsThisWeek / 60).toFixed(1)}h` : "0h",
+      change: loading ? "" : stats?.focusMinsThisWeek > 0 ? "this week" : "Start your first session",
+      up:     true,
+    },
+    {
+      label:  "Brain Dumps",
+      value:  loading ? "—" : stats ? `${stats.dumpsThisWeek}` : "0",
+      change: loading ? "" : stats?.totalChronicles > 0 ? `${stats.totalChronicles} total` : "Save your first dump",
+      up:     true,
+    },
+    {
+      label:  "Streak",
+      value:  loading ? "—" : stats ? `${stats.streak}d` : "0d",
+      change: loading ? "" : stats?.streak > 0 ? "🔥 Keep going" : "Start today",
+      up:     stats?.streak > 0,
+    },
+    {
+      label:  "Clarity Score",
+      value:  loading ? "—" : stats ? `${stats.clarityScore}%` : "—",
+      change: loading ? "" : "Based on your dumps",
+      up:     true,
+    },
+  ];
+
+  const insights = loading || !stats ? [
+    { emoji: "🧠", bg: "rgba(139,92,246,.1)", title: "Start your journey",     desc: "Save your first brain dump to begin building your self-model." },
+    { emoji: "🎯", bg: "rgba(6,182,212,.1)",  title: "Begin a focus session",  desc: "Click Focus in the sidebar to start your first protected work block." },
+    { emoji: "💬", bg: "rgba(59,130,246,.1)", title: "Talk to Mindoo",         desc: "Open Mindoo Chat and tell it what's on your mind. Just talk." },
+    { emoji: "🌐", bg: "rgba(99,102,241,.1)", title: "Self-Model building",    desc: "As you use Mindoo, your self-model builds automatically." },
+  ] : [
+    stats.dumpsThisWeek > 0
+      ? { emoji: "📈", bg: "rgba(139,92,246,.1)", title: "Brain Dump activity",   desc: `${stats.dumpsThisWeek} dumps this week. Your self-model is growing.` }
+      : { emoji: "🧠", bg: "rgba(139,92,246,.1)", title: "No dumps yet this week", desc: "Start a brain dump to clear your mind and feed your self-model." },
+    stats.clarityScore > 70
+      ? { emoji: "✨", bg: "rgba(34,197,94,.1)",  title: "High clarity",           desc: `Your clarity score is ${stats.clarityScore}%. Your mind is organized.` }
+      : { emoji: "🌤", bg: "rgba(6,182,212,.1)",  title: "Clarity building",       desc: `Clarity at ${stats.clarityScore}%. More dumps = lower chaos = higher clarity.` },
+    stats.streak > 2
+      ? { emoji: "🔥", bg: "rgba(245,158,11,.1)", title: `${stats.streak}-day streak`, desc: "Consistency is identity. You're proving who you're becoming." }
+      : { emoji: "⚡", bg: "rgba(245,158,11,.1)", title: "Build your streak",      desc: "Show up daily. Even one dump counts." },
+    stats.focusMinsThisWeek > 60
+      ? { emoji: "🎯", bg: "rgba(59,130,246,.1)", title: "Focus momentum",         desc: `${(stats.focusMinsThisWeek / 60).toFixed(1)} hours of protected work this week.` }
+      : { emoji: "💤", bg: "rgba(99,102,241,.1)", title: "Protect your attention", desc: "Deep work sessions are waiting. Select a focus mode to begin." },
+  ];
+
   return (
     <div className="section-scroll">
       <div className="section-content">
@@ -47,22 +84,27 @@ export function Home({ firstName, clock, onNavigate }) {
 
         {/* KPIs */}
         <div className="kpi-grid">
-          {KPI_DATA.map(k => (
+          {kpis.map(k => (
             <div key={k.label} className="kpi-card">
               <div className="kpi-label">{k.label}</div>
-              <div className="kpi-value gradient-text">{k.value}</div>
-              <div className={`kpi-change ${k.up ? "positive" : "negative"}`}>
-                <Icon name="trend" size={10} color={k.up ? "#4ade80" : "#f87171"} />
-                {k.change}
+              <div className={`kpi-value${loading ? "" : " gradient-text"}`}
+                style={loading ? { color: "var(--dim)", fontSize: 22 } : {}}>
+                {k.value}
               </div>
+              {k.change && (
+                <div className={`kpi-change ${k.up ? "positive" : ""}`}>
+                  {!loading && <Icon name="trend" size={10} color={k.up ? "#4ade80" : "var(--dim)"} />}
+                  {k.change}
+                </div>
+              )}
             </div>
           ))}
         </div>
 
-        {/* Modules grid */}
+        {/* Modules */}
         <div className="section-header">
           <h2 className="section-title">All Modules</h2>
-          <button className="text-btn">View all →</button>
+          <button className="text-btn" onClick={() => {}}>View all →</button>
         </div>
         <div className="modules-grid">
           {MODULES.map(m => (
@@ -84,20 +126,17 @@ export function Home({ firstName, clock, onNavigate }) {
           ))}
         </div>
 
-        {/* Two column: insights + actions */}
+        {/* Two-column bottom */}
         <div className="home-bottom">
 
-          {/* Insights */}
+          {/* Insights — dynamic based on real data */}
           <div>
             <div className="section-header" style={{ marginBottom: 12 }}>
               <h2 className="section-title">Today's Insights</h2>
-              <button className="text-btn">All →</button>
             </div>
-            {INSIGHTS.map((ins, i) => (
+            {insights.map((ins, i) => (
               <div key={i} className="insight-item">
-                <div className="insight-icon" style={{ background: ins.bg }}>
-                  {ins.emoji}
-                </div>
+                <div className="insight-icon" style={{ background: ins.bg }}>{ins.emoji}</div>
                 <div>
                   <div className="insight-title">{ins.title}</div>
                   <div className="insight-desc">{ins.desc}</div>
@@ -114,7 +153,7 @@ export function Home({ firstName, clock, onNavigate }) {
                 { label: "Start brain dump",    emoji: "🧠", to: "dump"    },
                 { label: "Begin focus session", emoji: "🎯", to: "focus"   },
                 { label: "Open Mindoo Chat",    emoji: "💬", to: "chat"    },
-                { label: "Log emotion",         emoji: "💜", to: "emotion" },
+                { label: "View Self-Model",     emoji: "🌐", to: "self"    },
               ].map(a => (
                 <button key={a.to} className="action-btn" onClick={() => onNavigate(a.to)}>
                   <span>{a.emoji}</span>
@@ -129,23 +168,28 @@ export function Home({ firstName, clock, onNavigate }) {
               <div className="self-model-header">
                 <span>🌐</span>
                 <span className="self-model-title">Self-Model</span>
-                <span className="self-model-live">LIVE</span>
+                <span className="self-model-live">BUILDING</span>
               </div>
               {IDENTITY.map(id => (
                 <div key={id.label} className="identity-row">
                   <div className="identity-meta">
                     <span>{id.label}</span>
-                    <span style={{ color: id.color, fontFamily: "var(--font-mono)", fontSize: 11 }}>{id.pct}%</span>
+                    <span style={{ color: id.color, fontFamily: "var(--font-mono)", fontSize: 11 }}>
+                      {id.pct}%
+                    </span>
                   </div>
                   <div className="progress-track">
                     <div className="progress-fill" style={{ width: `${id.pct}%`, background: id.color }} />
                   </div>
                 </div>
               ))}
+              <p style={{ fontSize: 11, color: "var(--dim)", marginTop: 12, lineHeight: 1.5 }}>
+                Grows with every dump, session, and chat.
+              </p>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );

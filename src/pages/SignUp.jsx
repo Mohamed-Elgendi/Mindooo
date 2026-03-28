@@ -1,504 +1,456 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../supabase'
-import { useNavigate, Link } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, User, Phone, Loader2, RefreshCw, Copy, Check, ChevronLeft } from 'lucide-react'
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "../supabase";
 
-const COUNTRIES = [
-  { code: '+20', flag: '🇪🇬', name: 'Egypt', digits: 10 },
-  { code: '+1', flag: '🇺🇸', name: 'USA', digits: 10 },
-  { code: '+44', flag: '🇬🇧', name: 'UK', digits: 10 },
-  { code: '+971', flag: '🇦🇪', name: 'UAE', digits: 9 },
-  { code: '+966', flag: '🇸🇦', name: 'Saudi Arabia', digits: 9 },
-  { code: '+974', flag: '🇶🇦', name: 'Qatar', digits: 8 },
-  { code: '+965', flag: '🇰🇼', name: 'Kuwait', digits: 8 },
-  { code: '+973', flag: '🇧🇭', name: 'Bahrain', digits: 8 },
-  { code: '+968', flag: '🇴🇲', name: 'Oman', digits: 8 },
-  { code: '+962', flag: '🇯🇴', name: 'Jordan', digits: 9 },
-  { code: '+961', flag: '🇱🇧', name: 'Lebanon', digits: 8 },
-  { code: '+963', flag: '🇸🇾', name: 'Syria', digits: 9 },
-  { code: '+964', flag: '🇮🇶', name: 'Iraq', digits: 10 },
-  { code: '+212', flag: '🇲🇦', name: 'Morocco', digits: 9 },
-  { code: '+216', flag: '🇹🇳', name: 'Tunisia', digits: 8 },
-  { code: '+213', flag: '🇩🇿', name: 'Algeria', digits: 9 },
-  { code: '+249', flag: '🇸🇩', name: 'Sudan', digits: 9 },
-  { code: '+33', flag: '🇫🇷', name: 'France', digits: 9 },
-  { code: '+49', flag: '🇩🇪', name: 'Germany', digits: 10 },
-  { code: '+39', flag: '🇮🇹', name: 'Italy', digits: 10 },
-  { code: '+34', flag: '🇪🇸', name: 'Spain', digits: 9 },
-  { code: '+7', flag: '🇷🇺', name: 'Russia', digits: 10 },
-  { code: '+86', flag: '🇨🇳', name: 'China', digits: 11 },
-  { code: '+91', flag: '🇮🇳', name: 'India', digits: 10 },
-  { code: '+81', flag: '🇯🇵', name: 'Japan', digits: 10 },
-  { code: '+55', flag: '🇧🇷', name: 'Brazil', digits: 11 },
-  { code: '+27', flag: '🇿🇦', name: 'South Africa', digits: 9 },
-  { code: '+234', flag: '🇳🇬', name: 'Nigeria', digits: 10 },
-  { code: '+254', flag: '🇰🇪', name: 'Kenya', digits: 9 },
-  { code: '+92', flag: '🇵🇰', name: 'Pakistan', digits: 10 },
-  { code: '+880', flag: '🇧🇩', name: 'Bangladesh', digits: 10 },
-  { code: '+62', flag: '🇮🇩', name: 'Indonesia', digits: 10 },
-  { code: '+60', flag: '🇲🇾', name: 'Malaysia', digits: 9 },
-  { code: '+65', flag: '🇸🇬', name: 'Singapore', digits: 8 },
-  { code: '+90', flag: '🇹🇷', name: 'Turkey', digits: 10 },
-  { code: '+98', flag: '🇮🇷', name: 'Iran', digits: 10 },
-  { code: '+82', flag: '🇰🇷', name: 'South Korea', digits: 10 },
-  { code: '+61', flag: '🇦🇺', name: 'Australia', digits: 9 },
-  { code: '+64', flag: '🇳🇿', name: 'New Zealand', digits: 9 },
-  { code: '+52', flag: '🇲🇽', name: 'Mexico', digits: 10 },
-  { code: '+54', flag: '🇦🇷', name: 'Argentina', digits: 10 },
-]
-
-function generatePassword() {
-  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  const lower = 'abcdefghijklmnopqrstuvwxyz'
-  const numbers = '0123456789'
-  const special = '!@#$%^&*'
-  const all = upper + lower + numbers + special
-  let p = ''
-  p += upper[Math.floor(Math.random() * upper.length)]
-  p += lower[Math.floor(Math.random() * lower.length)]
-  p += numbers[Math.floor(Math.random() * numbers.length)]
-  p += special[Math.floor(Math.random() * special.length)]
-  for (let i = 4; i < 16; i++) p += all[Math.floor(Math.random() * all.length)]
-  return p.split('').sort(() => Math.random() - 0.5).join('')
-}
-
+// Password strength checker
 function getStrength(p) {
-  let s = 0
-  if (p.length >= 8) s++
-  if (/[A-Z]/.test(p)) s++
-  if (/[0-9]/.test(p)) s++
-  if (/[^A-Za-z0-9]/.test(p)) s++
-  if (p.length >= 12) s++
-  return s
+  if (!p) return { score: 0, label: "", color: "" };
+  let score = 0;
+  if (p.length >= 8)  score++;
+  if (p.length >= 12) score++;
+  if (/[A-Z]/.test(p)) score++;
+  if (/[0-9]/.test(p)) score++;
+  if (/[^A-Za-z0-9]/.test(p)) score++;
+  if (score <= 1) return { score, label: "Weak",      color: "#ef4444" };
+  if (score <= 2) return { score, label: "Fair",       color: "#f59e0b" };
+  if (score <= 3) return { score, label: "Good",       color: "#3b82f6" };
+  if (score <= 4) return { score, label: "Strong",     color: "#8b5cf6" };
+  return              { score, label: "Very strong", color: "#22c55e" };
 }
 
-const strengthLevels = [
-  { label: 'Very weak', color: '#ef4444' },
-  { label: 'Weak', color: '#f97316' },
-  { label: 'Fair', color: '#eab308' },
-  { label: 'Strong', color: '#3b82f6' },
-  { label: 'Very strong', color: '#22c55e' },
-]
+const S = {
+  page: {
+    minHeight: "100vh",
+    background: "#09090f",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "24px 16px",
+    position: "relative",
+    overflow: "hidden",
+    fontFamily: "'Inter', sans-serif",
+  },
+  glowA: {
+    position: "fixed",
+    width: "600px", height: "600px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)",
+    top: "-200px", left: "-100px",
+    pointerEvents: "none", zIndex: 0,
+  },
+  glowB: {
+    position: "fixed",
+    width: "500px", height: "500px",
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
+    bottom: "-150px", right: "-100px",
+    pointerEvents: "none", zIndex: 0,
+  },
+  card: {
+    position: "relative", zIndex: 1,
+    width: "100%", maxWidth: "460px",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: "24px",
+    padding: "40px 36px",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+  },
+  logo: {
+    fontFamily: "'Sora', sans-serif",
+    fontWeight: 800,
+    fontSize: "26px",
+    letterSpacing: "-0.04em",
+    background: "linear-gradient(135deg,#8b5cf6,#6366f1,#3b82f6)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+    textAlign: "center",
+    marginBottom: "6px",
+    display: "block",
+  },
+  tagline: {
+    textAlign: "center",
+    fontSize: "13px",
+    color: "rgba(248,248,255,0.45)",
+    marginBottom: "28px",
+  },
+  label: {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "rgba(248,248,255,0.6)",
+    marginBottom: "6px",
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+  },
+  inputWrap: {
+    position: "relative",
+    marginBottom: "16px",
+  },
+  input: {
+    width: "100%",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "12px",
+    padding: "12px 16px",
+    color: "#f8f8ff",
+    fontSize: "14px",
+    fontFamily: "'Inter', sans-serif",
+    outline: "none",
+    transition: "border-color 0.2s, box-shadow 0.2s, background 0.2s",
+    display: "block",
+    boxSizing: "border-box",
+  },
+  inputFocus: {
+    borderColor: "rgba(139,92,246,0.6)",
+    boxShadow: "0 0 0 3px rgba(139,92,246,0.12)",
+    background: "rgba(255,255,255,0.08)",
+  },
+  eyeBtn: {
+    position: "absolute",
+    right: "14px", top: "50%",
+    transform: "translateY(-50%)",
+    background: "none", border: "none",
+    cursor: "pointer",
+    color: "rgba(248,248,255,0.35)",
+    display: "flex", alignItems: "center",
+    padding: "4px",
+  },
+  btnPrimary: {
+    width: "100%",
+    background: "linear-gradient(135deg,#8b5cf6,#6366f1,#3b82f6)",
+    border: "none",
+    borderRadius: "12px",
+    padding: "13px",
+    color: "#fff",
+    fontSize: "14px",
+    fontWeight: 700,
+    fontFamily: "'Inter', sans-serif",
+    cursor: "pointer",
+    transition: "opacity 0.2s, transform 0.15s",
+    letterSpacing: "0.02em",
+    marginBottom: "16px",
+  },
+  orRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "16px",
+  },
+  orLine: { flex: 1, height: "1px", background: "rgba(255,255,255,0.08)" },
+  orText: { fontSize: "12px", color: "rgba(248,248,255,0.3)", whiteSpace: "nowrap" },
+  googleBtn: {
+    width: "100%",
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "12px",
+    padding: "11px 16px",
+    color: "rgba(248,248,255,0.85)",
+    fontSize: "13.5px",
+    fontWeight: 600,
+    fontFamily: "'Inter', sans-serif",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    transition: "all 0.2s",
+    marginBottom: "24px",
+  },
+  bottomText: {
+    textAlign: "center",
+    fontSize: "13px",
+    color: "rgba(248,248,255,0.4)",
+  },
+  bottomLink: {
+    color: "#8b5cf6",
+    fontWeight: 600,
+    textDecoration: "none",
+  },
+  alert: {
+    borderRadius: "10px",
+    padding: "11px 14px",
+    fontSize: "13px",
+    marginBottom: "16px",
+    lineHeight: 1.5,
+  },
+  alertError: {
+    background: "rgba(239,68,68,0.1)",
+    border: "1px solid rgba(239,68,68,0.25)",
+    color: "#f87171",
+  },
+  alertSuccess: {
+    background: "rgba(34,197,94,0.1)",
+    border: "1px solid rgba(34,197,94,0.25)",
+    color: "#4ade80",
+  },
+  termsText: {
+    textAlign: "center",
+    fontSize: "11.5px",
+    color: "rgba(248,248,255,0.28)",
+    lineHeight: 1.6,
+    marginTop: "20px",
+  },
+  termsLink: {
+    color: "rgba(139,92,246,0.8)",
+    textDecoration: "none",
+  },
+};
 
-function Req({ met, text }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontFamily: 'Inter,sans-serif', color: met ? '#4ade80' : 'rgba(255,255,255,0.3)', transition: 'color 0.2s' }}>
-      {met
-        ? <Check size={12} style={{ color: '#4ade80', flexShrink: 0 }} />
-        : <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0 }} />
-      }
-      {text}
-    </div>
-  )
-}
+const GoogleLogo = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.6 20H24v8h11.3C33.7 33.4 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 20-8 20-20 0-1.3-.1-2.7-.4-4z"/>
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5.1l-6.3-5.2C29.4 35.5 26.8 36 24 36c-5.2 0-9.7-2.6-11.3-7H6.1c3.3 6.5 10 11 17.9 11z"/>
+    <path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.2-2.2 4-4 5.3l6.3 5.2C41.5 35.2 44 30 44 24c0-1.3-.1-2.7-.4-4z"/>
+  </svg>
+);
 
 export default function SignUp() {
-  const [step, setStep] = useState(1)
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [countryCode, setCountryCode] = useState('+20')
-  const [phone, setPhone] = useState('')
-  const [phoneError, setPhoneError] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [agreed, setAgreed] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [emailError, setEmailError] = useState('')
-  const [firstNameError, setFirstNameError] = useState('')
-  const [lastNameError, setLastNameError] = useState('')
-  const [success, setSuccess] = useState(false)
-  const [countdown, setCountdown] = useState(30)
-  const [resending, setResending] = useState(false)
-  const [resendMessage, setResendMessage] = useState('')
-  const [resendSuccess, setResendSuccess] = useState(false)
-  const [suggestedPassword, setSuggestedPassword] = useState('')
-  const [showSuggestion, setShowSuggestion] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [countrySearch, setCountrySearch] = useState('')
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false)
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const [name,      setName]      = useState("");
+  const [email,     setEmail]     = useState("");
+  const [password,  setPassword]  = useState("");
+  const [confirm,   setConfirm]   = useState("");
+  const [showPass,  setShowPass]  = useState(false);
+  const [showConf,  setShowConf]  = useState(false);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState("");
+  const [success,   setSuccess]   = useState(false);
+  const [focused,   setFocused]   = useState("");
 
-  useEffect(() => {
-    if (!success) return
-    if (countdown === 0) { handleAutoResend(); return }
-    const timer = setInterval(() => {
-      setCountdown(prev => { if (prev <= 1) { clearInterval(timer); return 0 } return prev - 1 })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [success, countdown])
-
-  useEffect(() => {
-    if (step === 2) { setSuggestedPassword(generatePassword()); setShowSuggestion(true) }
-  }, [step])
-
-  async function handleAutoResend() {
-    const { error } = await supabase.auth.resend({ type: 'signup', email })
-    if (!error) { setResendMessage('Confirmation email resent automatically.'); setResendSuccess(true); setCountdown(30) }
-  }
-
-  function validateEmail(val) {
-    if (!val) return ''
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Please enter a valid email address'
-    return ''
-  }
-
-  function validatePhone(val, code) {
-    if (!val) return ''
-    const country = COUNTRIES.find(c => c.code === code)
-    if (val.length < 7) return 'Phone number is too short'
-    if (val.length > 15) return 'Phone number is too long'
-    if (country && val.length !== country.digits) return `${country.name} numbers must be ${country.digits} digits`
-    return ''
-  }
-
-  function handlePhoneChange(val) {
-    const cleaned = val.replace(/\D/g, '')
-    setPhone(cleaned)
-    if (cleaned) setPhoneError(validatePhone(cleaned, countryCode))
-    else setPhoneError('')
-  }
-
-  function handleCountryChange(code) {
-    setCountryCode(code)
-    setShowCountryDropdown(false)
-    setCountrySearch('')
-    if (phone) setPhoneError(validatePhone(phone, code))
-  }
-
-  function handleStepOne() {
-    let valid = true
-    if (!firstName.trim()) { setFirstNameError('First name is required'); valid = false } else setFirstNameError('')
-    if (!lastName.trim()) { setLastNameError('Last name is required'); valid = false } else setLastNameError('')
-    const emailErr = validateEmail(email)
-    if (!email) { setEmailError('Email is required'); valid = false }
-    else if (emailErr) { setEmailError(emailErr); valid = false }
-    else setEmailError('')
-    if (phone) { const pe = validatePhone(phone, countryCode); if (pe) { setPhoneError(pe); valid = false } }
-    if (!valid) return
-    setError(''); setStep(2)
-  }
-
-  const reqs = {
-    length: password.length >= 8,
-    upper: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-    match: password.length > 0 && confirmPassword.length > 0 && password === confirmPassword,
-  }
-  const passwordValid = reqs.length && reqs.upper && reqs.number && reqs.special
-  const strength = getStrength(password)
-  const strengthLevel = strengthLevels[Math.min(strength, 4)]
+  const strength = getStrength(password);
 
   async function handleSignUp(e) {
-    e.preventDefault()
-    if (!passwordValid) { setError('Please meet all password requirements'); return }
-    if (!reqs.match) { setError('Passwords do not match'); return }
-    if (!agreed) { setError('Please agree to the terms to continue'); return }
-    setLoading(true); setError('')
-    const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, phone: phone ? `${countryCode}${phone}` : '' } }
-    })
-    if (error) { setError(error.message) } else { setSuccess(true); setCountdown(30) }
-    setLoading(false)
+    e.preventDefault();
+    setError("");
+    if (!name.trim()) { setError("Please enter your name."); return; }
+    if (!email)       { setError("Please enter your email."); return; }
+    if (!password)    { setError("Please create a password."); return; }
+    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    setLoading(true);
+    try {
+      const { error: err } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name.trim() } },
+      });
+      if (err) throw err;
+      setSuccess(true);
+    } catch (err) {
+      setError(err.message || "Sign up failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleGoogleSignUp() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/dashboard',
-        queryParams: { prompt: 'select_account' }
-      }
-    })
+  async function handleGoogle() {
+    setError("");
+    setLoading(true);
+    try {
+      const { error: err } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/dashboard` },
+      });
+      if (err) throw err;
+    } catch (err) {
+      setError(err.message || "Google sign up failed.");
+      setLoading(false);
+    }
   }
 
-  async function handleManualResend() {
-    setResending(true); setResendMessage(''); setResendSuccess(false)
-    const { error } = await supabase.auth.resend({ type: 'signup', email })
-    if (error) { setResendMessage('Failed to resend. Please try again.'); setResendSuccess(false) }
-    else { setResendMessage('Confirmation email sent successfully.'); setResendSuccess(true); setCountdown(30) }
-    setResending(false)
+  function inputStyle(field) {
+    return {
+      ...S.input,
+      ...(focused === field ? S.inputFocus : {}),
+      paddingRight: ["password","confirm"].includes(field) ? "44px" : "16px",
+    };
   }
-
-  const filteredCountries = COUNTRIES.filter(c =>
-    c.name.toLowerCase().includes(countrySearch.toLowerCase()) || c.code.includes(countrySearch)
-  )
-  const selectedCountry = COUNTRIES.find(c => c.code === countryCode)
-  const iconStyle = { position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }
 
   if (success) {
     return (
-      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',background:'#09090f',position:'relative'}}>
-        <div className="glow-purple" />
-        <div style={{width:'100%',maxWidth:'480px',position:'relative',zIndex:1}}>
-          <div style={{textAlign:'center',marginBottom:'32px'}}>
-            <div className="axis-logo gradient-text" style={{marginBottom:'8px'}}>Mindoo</div>
-          </div>
-          <div className="glass-card" style={{padding:'clamp(24px, 5vw, 40px)',textAlign:'center'}}>
-            <div style={{width:'64px',height:'64px',borderRadius:'20px',background:'rgba(34,197,94,0.1)',border:'1px solid rgba(34,197,94,0.2)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 24px'}}>
-              <Check size={28} style={{color:'#4ade80'}} />
-            </div>
-            <h2 style={{fontFamily:'Sora,sans-serif',fontWeight:'700',fontSize:'24px',color:'#ffffff',letterSpacing:'-0.02em',marginBottom:'8px'}}>Check your email</h2>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',marginBottom:'4px'}}>We sent a confirmation link to</p>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'15px',fontWeight:'600',color:'#ffffff',marginBottom:'8px',wordBreak:'break-all'}}>{email}</p>
-            <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(255,255,255,0.3)',marginBottom:'32px',lineHeight:'1.6'}}>Click the link to activate your account. Check your spam folder if you do not see it.</p>
-            {resendMessage && (
-              <div className={resendSuccess ? 'alert-success' : 'alert-error'} style={{marginBottom:'20px'}}>
-                <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:resendSuccess ? '#4ade80' : '#f87171'}}>{resendMessage}</p>
-              </div>
-            )}
-            <div style={{marginBottom:'16px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
-                <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.3)'}}>{countdown > 0 ? `Auto-resend in ${countdown}s` : 'Ready to resend'}</span>
-                <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.3)'}}>{Math.round((countdown / 30) * 100)}%</span>
-              </div>
-              <div style={{height:'3px',background:'rgba(255,255,255,0.06)',borderRadius:'2px',overflow:'hidden'}}>
-                <div style={{height:'100%',background:'linear-gradient(90deg,#8b5cf6,#3b82f6)',borderRadius:'2px',width:`${(countdown / 30) * 100}%`,transition:'width 1s linear'}} />
-              </div>
-            </div>
-            <button onClick={handleManualResend} disabled={countdown > 0 || resending} className="btn-primary" style={{marginBottom:'12px'}}>
-              {resending ? <><Loader2 size={16} style={{animation:'spin 1s linear infinite'}}/><span>Sending...</span></> : countdown > 0 ? <span>Resend available in {countdown}s</span> : <span>Resend confirmation email</span>}
-            </button>
-            <button onClick={() => navigate('/signin')} className="btn-secondary">
-              <span>Back to Sign In</span>
-            </button>
+      <>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <div style={S.page}>
+          <div style={S.glowA} /><div style={S.glowB} />
+          <div style={{ ...S.card, textAlign: "center" }}>
+            <span style={S.logo}>Mindoo</span>
+            <div style={{ fontSize: "40px", marginBottom: "16px" }}>✉️</div>
+            <h2 style={{ fontFamily: "'Sora',sans-serif", fontWeight: 800, fontSize: "22px", letterSpacing: "-0.03em", color: "#f8f8ff", marginBottom: "10px" }}>
+              Check your inbox
+            </h2>
+            <p style={{ fontSize: "13px", color: "rgba(248,248,255,0.45)", lineHeight: 1.7, marginBottom: "28px" }}>
+              We sent a confirmation link to <strong style={{ color: "#f8f8ff" }}>{email}</strong>.<br />
+              Click it to activate your account.
+            </p>
+            <div style={{ ...S.alert, ...S.alertSuccess }}>✓ Account created — awaiting confirmation</div>
+            <Link to="/signin" style={{ ...S.btnPrimary, display: "block", textDecoration: "none", textAlign: "center", lineHeight: "1.4" }}>
+              Go to Sign In
+            </Link>
           </div>
         </div>
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
+      </>
+    );
   }
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'24px 16px',background:'#09090f',position:'relative'}}>
-      <div className="glow-purple" />
-      <div style={{width:'100%',maxWidth:'480px',position:'relative',zIndex:1}}>
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-        {/* HEADER */}
-        <div style={{textAlign:'center',marginBottom:'32px'}}>
-          <div className="axis-logo gradient-text" style={{marginBottom:'8px'}}>Mindoo</div>
-          <p style={{color:'rgba(255,255,255,0.4)',fontSize:'15px',fontFamily:'Inter,sans-serif'}}>From chaos to clarity. Now do more.</p>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'16px'}}>
-            <div style={{height:'3px',width:'60px',borderRadius:'2px',background: step >= 1 ? 'linear-gradient(90deg,#8b5cf6,#6366f1)' : 'rgba(255,255,255,0.1)',transition:'all 0.3s'}} />
-            <div style={{height:'3px',width:'60px',borderRadius:'2px',background: step >= 2 ? 'linear-gradient(90deg,#6366f1,#3b82f6)' : 'rgba(255,255,255,0.1)',transition:'all 0.3s'}} />
-            <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.3)',marginLeft:'8px'}}>Step {step} of 2</span>
+      <div style={S.page}>
+        <div style={S.glowA} />
+        <div style={S.glowB} />
+
+        <div style={S.card}>
+          <span style={S.logo}>Mindoo</span>
+          <p style={S.tagline}>Your cognitive operating system. Free forever.</p>
+
+          {error && <div style={{ ...S.alert, ...S.alertError }}>{error}</div>}
+
+          <form onSubmit={handleSignUp} noValidate>
+
+            {/* Name */}
+            <label style={S.label}>Full name</label>
+            <div style={S.inputWrap}>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                onFocus={() => setFocused("name")}
+                onBlur={() => setFocused("")}
+                style={inputStyle("name")}
+                placeholder="Your name"
+                autoComplete="name"
+              />
+            </div>
+
+            {/* Email */}
+            <label style={S.label}>Email</label>
+            <div style={S.inputWrap}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onFocus={() => setFocused("email")}
+                onBlur={() => setFocused("")}
+                style={inputStyle("email")}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </div>
+
+            {/* Password */}
+            <label style={S.label}>Password</label>
+            <div style={S.inputWrap}>
+              <input
+                type={showPass ? "text" : "password"}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onFocus={() => setFocused("password")}
+                onBlur={() => setFocused("")}
+                style={inputStyle("password")}
+                placeholder="Min. 8 characters"
+                autoComplete="new-password"
+              />
+              <button type="button" style={S.eyeBtn} onClick={() => setShowPass(p => !p)}>
+                {showPass
+                  ? <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  : <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+            </div>
+
+            {/* Strength bar */}
+            {password && (
+              <div style={{ marginBottom: "16px", marginTop: "-8px" }}>
+                <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} style={{
+                      flex: 1, height: "3px", borderRadius: "2px",
+                      background: i <= strength.score ? strength.color : "rgba(255,255,255,0.1)",
+                      transition: "background 0.3s",
+                    }}/>
+                  ))}
+                </div>
+                <div style={{ fontSize: "11px", color: strength.color, textAlign: "right" }}>
+                  {strength.label}
+                </div>
+              </div>
+            )}
+
+            {/* Confirm password */}
+            <label style={S.label}>Confirm password</label>
+            <div style={S.inputWrap}>
+              <input
+                type={showConf ? "text" : "password"}
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                onFocus={() => setFocused("confirm")}
+                onBlur={() => setFocused("")}
+                style={{
+                  ...inputStyle("confirm"),
+                  borderColor: confirm && confirm !== password
+                    ? "rgba(239,68,68,0.5)"
+                    : confirm && confirm === password
+                    ? "rgba(34,197,94,0.5)"
+                    : focused === "confirm" ? "rgba(139,92,246,0.6)" : "rgba(255,255,255,0.12)",
+                }}
+                placeholder="Repeat your password"
+                autoComplete="new-password"
+              />
+              <button type="button" style={S.eyeBtn} onClick={() => setShowConf(p => !p)}>
+                {showConf
+                  ? <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  : <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ ...S.btnPrimary, opacity: loading ? 0.6 : 1 }}
+            >
+              {loading ? "Creating account…" : "Create Free Account"}
+            </button>
+          </form>
+
+          {/* Or Google */}
+          <div style={S.orRow}>
+            <div style={S.orLine} />
+            <span style={S.orText}>or sign up with</span>
+            <div style={S.orLine} />
           </div>
-        </div>
 
-        {/* CARD */}
-        <div className="glass-card" style={{padding:'clamp(24px, 5vw, 40px)'}}>
-          {error && (
-            <div className="alert-error" style={{marginBottom:'16px'}}>
-              <div style={{display:'flex',gap:'10px',alignItems:'flex-start'}}>
-                <span style={{color:'#f87171',flexShrink:0}}>✗</span>
-                <p style={{fontFamily:'Inter,sans-serif',fontSize:'13px',color:'rgba(248,113,113,0.9)'}}>{error}</p>
-              </div>
-            </div>
-          )}
+          <button
+            onClick={handleGoogle}
+            disabled={loading}
+            style={{ ...S.googleBtn, opacity: loading ? 0.6 : 1 }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+          >
+            <GoogleLogo />
+            Continue with Google
+          </button>
 
-          {/* STEP 1 */}
-          {step === 1 && (
-            <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+          <p style={S.bottomText}>
+            Already have an account?{" "}
+            <Link to="/signin" style={S.bottomLink}>Sign in</Link>
+          </p>
 
-              {/* NAME FIELDS — stack on mobile */}
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))',gap:'12px'}}>
-                <div>
-                  <label className="label-text">First name</label>
-                  <div style={{position:'relative'}}>
-                    <User size={16} style={iconStyle} />
-                    <input type="text" value={firstName} onChange={e => { setFirstName(e.target.value); setFirstNameError('') }} autoFocus className={`glass-input ${firstNameError ? 'error' : ''}`} style={{paddingLeft:'42px'}} placeholder="John" />
-                  </div>
-                  {firstNameError && <p className="error-message">✗ {firstNameError}</p>}
-                </div>
-                <div>
-                  <label className="label-text">Last name</label>
-                  <div style={{position:'relative'}}>
-                    <User size={16} style={iconStyle} />
-                    <input type="text" value={lastName} onChange={e => { setLastName(e.target.value); setLastNameError('') }} className={`glass-input ${lastNameError ? 'error' : ''}`} style={{paddingLeft:'42px'}} placeholder="Doe" />
-                  </div>
-                  {lastNameError && <p className="error-message">✗ {lastNameError}</p>}
-                </div>
-              </div>
-
-              {/* EMAIL */}
-              <div>
-                <label className="label-text">Email address</label>
-                <div style={{position:'relative'}}>
-                  <Mail size={16} style={iconStyle} />
-                  <input type="email" value={email} onChange={e => { setEmail(e.target.value); setEmailError(validateEmail(e.target.value)) }} className={`glass-input ${emailError ? 'error' : ''}`} style={{paddingLeft:'42px'}} placeholder="name@example.com" />
-                </div>
-                {emailError ? <p className="error-message">✗ {emailError}</p> : <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.2)',marginTop:'6px'}}>We will never share your email with anyone.</p>}
-              </div>
-
-              {/* PHONE */}
-              <div>
-                <label className="label-text">Phone number <span style={{color:'rgba(255,255,255,0.2)',fontWeight:'400'}}>(optional)</span></label>
-                <div style={{display:'flex',gap:'8px',position:'relative'}}>
-                  <div style={{position:'relative',flexShrink:0}}>
-                    <button type="button" onClick={() => setShowCountryDropdown(!showCountryDropdown)} style={{display:'flex',alignItems:'center',gap:'6px',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'12px',padding:'13px 12px',color:'white',cursor:'pointer',fontSize:'14px',whiteSpace:'nowrap',fontFamily:'Inter,sans-serif'}}>
-                      <span>{selectedCountry?.flag}</span>
-                      <span>{countryCode}</span>
-                      <span style={{color:'rgba(255,255,255,0.3)',fontSize:'10px'}}>▼</span>
-                    </button>
-                    {showCountryDropdown && (
-                      <div style={{position:'absolute',top:'100%',left:0,marginTop:'4px',width:'min(280px, calc(100vw - 32px))',background:'#16162a',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'16px',zIndex:100,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.5)'}}>
-                        <div style={{padding:'12px'}}>
-                          <input type="text" value={countrySearch} onChange={e => setCountrySearch(e.target.value)} placeholder="Search country..." autoFocus className="glass-input" style={{fontSize:'13px',padding:'10px 14px'}} />
-                        </div>
-                        <div style={{maxHeight:'200px',overflowY:'auto'}}>
-                          {filteredCountries.map(c => (
-                            <button key={c.code} type="button" onClick={() => handleCountryChange(c.code)} style={{width:'100%',display:'flex',alignItems:'center',gap:'10px',padding:'10px 16px',background: countryCode === c.code ? 'rgba(139,92,246,0.15)' : 'transparent',border:'none',cursor:'pointer',color:'white',fontFamily:'Inter,sans-serif',fontSize:'13px',textAlign:'left'}}>
-                              <span>{c.flag}</span>
-                              <span style={{flex:1}}>{c.name}</span>
-                              <span style={{color:'rgba(255,255,255,0.3)',fontSize:'11px'}}>{c.code} · {c.digits}d</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div style={{flex:1,position:'relative'}}>
-                    <Phone size={16} style={iconStyle} />
-                    <input type="tel" value={phone} onChange={e => handlePhoneChange(e.target.value)} className={`glass-input ${phoneError ? 'error' : phone && !phoneError ? 'success' : ''}`} style={{paddingLeft:'42px'}} placeholder={`${selectedCountry?.digits || 10} digits`} maxLength={15} />
-                  </div>
-                </div>
-                {phoneError && <p className="error-message">✗ {phoneError}</p>}
-                {phone && !phoneError && <p className="success-message"><Check size={12} /> Valid phone number</p>}
-              </div>
-
-              <button type="button" onClick={handleStepOne} className="btn-primary" style={{marginTop:'4px'}}>
-                <span>Continue</span>
-              </button>
-
-              <div className="divider-line"><span>or</span></div>
-
-              <button type="button" onClick={handleGoogleSignUp} className="btn-secondary">
-                <svg width="18" height="18" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                <span>Continue with Google</span>
-              </button>
-
-              <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',textAlign:'center'}}>
-                Already have an account?{' '}
-                <Link to="/signin" style={{color:'#a78bfa',textDecoration:'none',fontWeight:'600'}}>Sign in</Link>
-              </p>
-            </div>
-          )}
-
-          {/* STEP 2 */}
-          {step === 2 && (
-            <form onSubmit={handleSignUp} style={{display:'flex',flexDirection:'column',gap:'16px'}}>
-              <button type="button" onClick={() => { setStep(1); setError('') }} style={{display:'flex',alignItems:'center',gap:'6px',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.4)',fontSize:'13px',fontFamily:'Inter,sans-serif',padding:'0',marginBottom:'4px'}}>
-                <ChevronLeft size={14} /> Back
-              </button>
-
-              <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',padding:'12px 16px'}}>
-                <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.3)',marginBottom:'2px'}}>Signing up as</p>
-                <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',fontWeight:'600',color:'#ffffff',wordBreak:'break-all'}}>{firstName} {lastName} — {email}</p>
-              </div>
-
-              {showSuggestion && (
-                <div style={{background:'rgba(139,92,246,0.08)',border:'1px solid rgba(139,92,246,0.2)',borderRadius:'14px',padding:'16px'}}>
-                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',fontWeight:'600',color:'#a78bfa',marginBottom:'10px',letterSpacing:'0.05em',textTransform:'uppercase'}}>Suggested strong password</p>
-                  <div style={{background:'rgba(0,0,0,0.3)',borderRadius:'10px',padding:'12px 14px',marginBottom:'10px'}}>
-                    <p style={{fontFamily:'monospace',fontSize:'14px',color:'#ffffff',letterSpacing:'0.05em',wordBreak:'break-all'}}>{suggestedPassword}</p>
-                  </div>
-                  <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
-                    <button type="button" onClick={() => { setPassword(suggestedPassword); setConfirmPassword(suggestedPassword); setShowPassword(true); setShowSuggestion(false) }} style={{flex:1,minWidth:'80px',background:'linear-gradient(135deg,#8b5cf6,#6366f1)',color:'white',border:'none',borderRadius:'10px',padding:'9px',fontSize:'13px',fontWeight:'600',cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Use this</button>
-                    <button type="button" onClick={() => { navigator.clipboard.writeText(suggestedPassword); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{background:'rgba(255,255,255,0.06)',color:'rgba(255,255,255,0.7)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'9px 14px',fontSize:'13px',cursor:'pointer',fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',gap:'4px'}}>
-                      {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
-                    </button>
-                    <button type="button" onClick={() => setSuggestedPassword(generatePassword())} style={{background:'rgba(255,255,255,0.06)',color:'rgba(255,255,255,0.7)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'10px',padding:'9px 14px',fontSize:'13px',cursor:'pointer',display:'flex',alignItems:'center'}}>
-                      <RefreshCw size={13} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!showSuggestion && (
-                <button type="button" onClick={() => { setSuggestedPassword(generatePassword()); setShowSuggestion(true) }} style={{background:'none',border:'none',cursor:'pointer',color:'#a78bfa',fontSize:'13px',fontFamily:'Inter,sans-serif',display:'flex',alignItems:'center',gap:'6px',padding:'0'}}>
-                  ✦ Suggest a strong password
-                </button>
-              )}
-
-              <div>
-                <label className="label-text">Password</label>
-                <div style={{position:'relative'}}>
-                  <Lock size={16} style={iconStyle} />
-                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} autoFocus className="glass-input" style={{paddingLeft:'42px',paddingRight:'50px'}} placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',display:'flex',padding:'0'}}>
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {password && (
-                  <div style={{marginTop:'10px'}}>
-                    <div style={{display:'flex',gap:'4px',marginBottom:'6px'}}>
-                      {[0,1,2,3,4].map(i => (
-                        <div key={i} className="strength-segment" style={{background: i < strength ? strengthLevel.color : 'rgba(255,255,255,0.08)'}} />
-                      ))}
-                    </div>
-                    <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:strengthLevel.color}}>{strengthLevel.label}</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="label-text">Confirm password</label>
-                <div style={{position:'relative'}}>
-                  <Lock size={16} style={iconStyle} />
-                  <input type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={`glass-input ${confirmPassword && (reqs.match ? 'success' : 'error')}`} style={{paddingLeft:'42px',paddingRight:'50px'}} placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{position:'absolute',right:'14px',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.3)',display:'flex',padding:'0'}}>
-                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {confirmPassword && (
-                  <p style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color: reqs.match ? '#4ade80' : '#f87171',marginTop:'6px',display:'flex',alignItems:'center',gap:'4px'}}>
-                    {reqs.match ? <><Check size={12} /> Passwords match</> : '✗ Passwords do not match'}
-                  </p>
-                )}
-              </div>
-
-              <div style={{background:'rgba(255,255,255,0.02)',border:'1px solid rgba(255,255,255,0.06)',borderRadius:'12px',padding:'14px 16px',display:'flex',flexDirection:'column',gap:'8px'}}>
-                <p style={{fontFamily:'Inter,sans-serif',fontSize:'11px',color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:'4px'}}>Password requirements</p>
-                <Req met={reqs.length} text="At least 8 characters" />
-                <Req met={reqs.upper} text="One uppercase letter" />
-                <Req met={reqs.number} text="One number" />
-                <Req met={reqs.special} text="One special character (!@#$...)" />
-              </div>
-
-              <label style={{display:'flex',alignItems:'flex-start',gap:'10px',cursor:'pointer'}}>
-                <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{width:'16px',height:'16px',accentColor:'#8b5cf6',marginTop:'2px',flexShrink:0}} />
-                <span style={{fontFamily:'Inter,sans-serif',fontSize:'12px',color:'rgba(255,255,255,0.4)',lineHeight:'1.6'}}>
-                  I agree to the{' '}
-                  <Link to="/terms" target="_blank" style={{color:'#a78bfa',textDecoration:'underline'}}>Terms of Service</Link>
-                  {' '}and{' '}
-                  <Link to="/privacy" target="_blank" style={{color:'#a78bfa',textDecoration:'underline'}}>Privacy Policy</Link>.
-                  {' '}We never share your data.
-                </span>
-              </label>
-
-              <button type="submit" disabled={loading} className="btn-primary">
-                {loading ? <><Loader2 size={16} style={{animation:'spin 1s linear infinite'}}/><span>Creating account...</span></> : <span>Create Account</span>}
-              </button>
-
-              <p style={{fontFamily:'Inter,sans-serif',fontSize:'14px',color:'rgba(255,255,255,0.4)',textAlign:'center'}}>
-                Already have an account?{' '}
-                <Link to="/signin" style={{color:'#a78bfa',textDecoration:'none',fontWeight:'600'}}>Sign in</Link>
-              </p>
-            </form>
-          )}
+          <p style={S.termsText}>
+            By creating an account you agree to our{" "}
+            <Link to="/terms" style={S.termsLink}>Terms</Link> and{" "}
+            <Link to="/privacy" style={S.termsLink}>Privacy Policy</Link>.
+          </p>
         </div>
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </div>
-  )
+    </>
+  );
 }
