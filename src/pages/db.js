@@ -57,6 +57,19 @@ export async function getChronicleCount(userId) {
   return { count: count ?? 0, error };
 }
 
+/** Update a chronicle's text */
+export async function updateChronicle(chronicleId, newText) {
+  const { error } = await supabase
+    .from("chronicles")
+    .update({
+      text:       newText,
+      word_count: newText.trim().split(/\s+/).filter(Boolean).length,
+    })
+    .eq("id", chronicleId);
+
+  return { error };
+}
+
 /** Delete a chronicle */
 export async function deleteChronicle(chronicleId) {
   const { error } = await supabase
