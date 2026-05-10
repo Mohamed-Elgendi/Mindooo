@@ -99,8 +99,10 @@ html, body, #root {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-width: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── BACKGROUND GLOW ── */
@@ -361,6 +363,8 @@ html, body, #root {
 .section-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 .section-content {
   padding: 28px;
@@ -1492,4 +1496,61 @@ html, body, #root {
   background: rgba(6,182,212,0.08);
   border-color: rgba(6,182,212,0.35);
   box-shadow: 0 0 20px rgba(6,182,212,0.1);
+}
+/* ── INPUT FIX — prevents focus loss on re-render ── */
+input, textarea, select {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* ── MODAL INPUT FIX ── */
+.modal-box {
+  position: relative;
+  z-index: 1000;
+}
+.modal-box input,
+.modal-box textarea,
+.modal-box select {
+  pointer-events: auto !important;
+  z-index: 1001;
+  position: relative;
+}
+
+/* ── PROVIDERS PANEL SCROLL ── */
+.providers-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.providers-content {
+  padding: 28px;
+  padding-bottom: 60px;
+  max-width: 900px;
+}
+
+@media (max-width: 768px) {
+  .providers-content { padding: 16px; padding-bottom: 48px; }
+}
+/* ── SCROLL FIX ── */
+.app-main {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.section-scroll {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── INPUT FIX ── */
+input, textarea, select {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }

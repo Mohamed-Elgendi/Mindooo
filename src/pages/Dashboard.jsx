@@ -1,6 +1,4 @@
-// ─────────────────────────────────────────────────────────────────
-// src/pages/Dashboard.jsx — thin shell, coordinates all sections
-// ─────────────────────────────────────────────────────────────────
+// src/pages/Dashboard.jsx
 import { useState, useEffect, useCallback } from "react";
 import { useAuth }           from "../hooks/useAuth";
 import { Sidebar }           from "../components/Sidebar";
@@ -16,7 +14,6 @@ import { AIProviders }  from "./sections/AIProviders";
 import { ModulePage }   from "./sections/ModulePage";
 import { Settings }     from "./sections/Settings";
 
-// Clock
 function useClock() {
   const fmt = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
@@ -30,6 +27,20 @@ function useClock() {
   return clock;
 }
 
+// Scroll wrapper — every non-chat section sits inside this
+function ScrollWrap({ children }) {
+  return (
+    <div style={{
+      flex:                  1,
+      overflowY:             "auto",
+      overflowX:             "hidden",
+      WebkitOverflowScrolling: "touch",
+    }}>
+      {children}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user, firstName, loading, logout } = useAuth();
   const clock = useClock();
@@ -38,16 +49,14 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshKey,  setRefreshKey]  = useState(0);
 
-  const onDataChanged = useCallback(() => {
-    setRefreshKey(k => k + 1);
-  }, []);
+  const onDataChanged = useCallback(() => setRefreshKey(k => k + 1), []);
 
   function navigate(id) {
     setSection(id);
     setSidebarOpen(false);
   }
 
-  const activeMod    = MODULES.find(m => m.id === section);
+  const activeMod     = MODULES.find(m => m.id === section);
   const knownSections = ["home","chat","dump","focus","providers","settings"];
   const isModulePage  = activeMod && !knownSections.includes(section);
 
@@ -86,58 +95,71 @@ export default function Dashboard() {
           onLogout={logout}
         />
 
+        {/* HOME */}
         {section === "home" && (
-          <ErrorBoundary key="home">
-            <Home
-              firstName={firstName}
-              userId={userId}
-              clock={clock}
-              onNavigate={navigate}
-              refreshKey={refreshKey}
-            />
-          </ErrorBoundary>
+          <ScrollWrap>
+            <ErrorBoundary key="home">
+              <Home
+                firstName={firstName}
+                userId={userId}
+                clock={clock}
+                onNavigate={navigate}
+                refreshKey={refreshKey}
+              />
+            </ErrorBoundary>
+          </ScrollWrap>
         )}
 
+        {/* CHAT — has its own internal scroll, no ScrollWrap */}
         {section === "chat" && (
           <ErrorBoundary key="chat">
             <ChatPanel firstName={firstName} user={user} />
           </ErrorBoundary>
         )}
 
+        {/* BRAIN DUMP */}
         {section === "dump" && (
-          <ErrorBoundary key="dump">
-            <BrainDump
-              userId={userId}
-              onChronicleAdded={onDataChanged}
-            />
-          </ErrorBoundary>
+          <ScrollWrap>
+            <ErrorBoundary key="dump">
+              <BrainDump userId={userId} onChronicleAdded={onDataChanged} />
+            </ErrorBoundary>
+          </ScrollWrap>
         )}
 
+        {/* FOCUS */}
         {section === "focus" && (
-          <ErrorBoundary key="focus">
-            <FocusSection
-              userId={userId}
-              onSessionComplete={onDataChanged}
-            />
-          </ErrorBoundary>
+          <ScrollWrap>
+            <ErrorBoundary key="focus">
+              <FocusSection userId={userId} onSessionComplete={onDataChanged} />
+            </ErrorBoundary>
+          </ScrollWrap>
         )}
 
+        {/* AI PROVIDERS */}
         {section === "providers" && (
-          <ErrorBoundary key="providers">
-            <AIProviders user={user} />
-          </ErrorBoundary>
+          <ScrollWrap>
+            <ErrorBoundary key="providers">
+              <AIProviders user={user} />
+            </ErrorBoundary>
+          </ScrollWrap>
         )}
 
+        {/* SETTINGS */}
         {section === "settings" && (
-          <ErrorBoundary key="settings">
-            <Settings user={user} firstName={firstName} onLogout={logout} />
-          </ErrorBoundary>
+          <ScrollWrap>
+            <ErrorBoundary key="settings">
+              <Settings user={user} firstName={firstName} onLogout={logout} />
+            </ErrorBoundary>
+          </ScrollWrap>
         )}
 
+        {/* ALL OTHER MODULES */}
         {isModulePage && (
-          <ErrorBoundary key={section}>
-            <ModulePage module={activeMod} onNavigate={navigate} />
-          </ErrorBoundary>
+          <ScrollWrap>
+            <ErrorBoundary key={section}>
+              <ModulePage module={activeMod} onNavigate={navigate} />
+            </ErrorBoundary>
+          </ScrollWrap>
         )}
       </main>
     </div>
