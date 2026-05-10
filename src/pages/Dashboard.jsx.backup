@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────────────────────────
-// src/pages/Dashboard.jsx — thin shell, coordinates all sections
+// Dashboard.jsx — thin shell, now passes userId to sections
+// and coordinates refresh when data changes
 // ─────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from "react";
 import { useAuth }           from "../hooks/useAuth";
@@ -12,7 +13,6 @@ import { Home }         from "./sections/Home";
 import { ChatPanel }    from "./sections/ChatPanel";
 import { BrainDump }    from "./sections/BrainDump";
 import { FocusSection } from "./sections/FocusSection";
-import { AIProviders }  from "./sections/AIProviders";
 import { ModulePage }   from "./sections/ModulePage";
 import { Settings }     from "./sections/Settings";
 
@@ -36,6 +36,7 @@ export default function Dashboard() {
 
   const [section,     setSection]     = useState("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // refreshKey increments when data changes → Home re-fetches KPIs
   const [refreshKey,  setRefreshKey]  = useState(0);
 
   const onDataChanged = useCallback(() => {
@@ -48,8 +49,7 @@ export default function Dashboard() {
   }
 
   const activeMod    = MODULES.find(m => m.id === section);
-  const knownSections = ["home","chat","dump","focus","providers","settings"];
-  const isModulePage  = activeMod && !knownSections.includes(section);
+  const isModulePage = activeMod && !["home","chat","dump","focus","settings"].includes(section);
 
   if (loading) {
     return (
@@ -100,7 +100,7 @@ export default function Dashboard() {
 
         {section === "chat" && (
           <ErrorBoundary key="chat">
-            <ChatPanel firstName={firstName} user={user} />
+            <ChatPanel firstName={firstName} />
           </ErrorBoundary>
         )}
 
@@ -119,12 +119,6 @@ export default function Dashboard() {
               userId={userId}
               onSessionComplete={onDataChanged}
             />
-          </ErrorBoundary>
-        )}
-
-        {section === "providers" && (
-          <ErrorBoundary key="providers">
-            <AIProviders user={user} />
           </ErrorBoundary>
         )}
 

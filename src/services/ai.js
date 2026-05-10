@@ -1,612 +1,237 @@
-// ─────────────────────────────────────────────────────────────────
-// services/ai.js
+// src/services/ai.js — Universal AI Engine
 // THE ONLY FILE THAT CALLS AI APIS.
-//
-// Contains:
-//   PROVIDER_REGISTRY   — all AI providers, one config card each
-//   Quota Manager       — tracks usage, cooldowns, errors per provider
-//   callAI()            — smart failover loop, returns first success
-//   getProviderStatus() — exposes provider health for UI display
-//   resetProvider()     — manual recovery tool
-//   analyzeChronicle()  — silent AI analysis of brain dumps
-//   formatDuration()    — utility for focus session display
-//   embedText()         — embed text for RAG (future)
-//   embedQuery()        — embed a search query for RAG (future)
-// ─────────────────────────────────────────────────────────────────
+// Supports: OpenAI-compatible, Anthropic, Google Gemini formats.
+// Providers stored in Supabase. API keys stored in Supabase.
+// Smart failover + per-minute/daily quota management via localStorage.
 
-// ═══════════════════════════════════════════════════════════════════
-// PROVIDER REGISTRY
-// To add a new provider: add one object here. Nothing else changes.
-// ═══════════════════════════════════════════════════════════════════
+import { supabase } from '../supabase';
 
-export const PROVIDER_REGISTRY = [
+// ── Provider cache ────────────────────────────────────────────────
+let _cache = [], _cacheUser = null, _cacheAt = 0;
+const CACHE_TTL = 60_000;
 
-  // ── TIER 1: Primary (tried first) ────────────────────────────────
-  {
-    id: 'groq',
-    name: 'Groq',
-    url: 'https://api.groq.com/openai/v1/chat/completions',
-    model: 'llama-3.3-70b-versatile',
-    envKey: 'VITE_GROQ_API_KEY',
-    format: 'openai',
-    priority: 1,
-    maxRequestsPerMinute: 30,
-    maxRequestsPerDay: 14400,
-    maxTokensPerRequest: 8000,
-    cooldownOnRateLimit: 62,
-    cooldownOnError: 15,
-    browserSafe: true,
-    free: true,
-    quality: 'high',
-    enabled: true,
-  },
-
-  // ── TIER 2: Secondary (tried if Tier 1 fails) ────────────────────
-  {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    url: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
-    envKey: 'VITE_OPENROUTER_API_KEY',
-    format: 'openai',
-    priority: 2,
-    maxRequestsPerMinute: 20,
-    maxRequestsPerDay: 200,
-    maxTokensPerRequest: 8000,
-    cooldownOnRateLimit: 65,
-    cooldownOnError: 20,
-    browserSafe: true,
-    free: true,
-    quality: 'high',
-    enabled: true,
-  },
-
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    url: 'https://api.deepseek.com/v1/chat/completions',
-    model: 'deepseek-chat',
-    envKey: 'VITE_DEEPSEEK_API_KEY',
-    format: 'openai',
-    priority: 3,
-    maxRequestsPerMinute: 60,
-    maxRequestsPerDay: 1000,
-    maxTokensPerRequest: 64000,
-    cooldownOnRateLimit: 62,
-    cooldownOnError: 15,
-    browserSafe: true,
-    free: false,
-    quality: 'high',
-    enabled: true,
-  },
-
-  // ── TIER 3: Additional fallbacks ─────────────────────────────────
-  {
-    id: 'mistral',
-    name: 'Mistral',
-    url: 'https://api.mistral.ai/v1/chat/completions',
-    model: 'mistral-small-latest',
-    envKey: 'VITE_MISTRAL_API_KEY',
-    format: 'openai',
-    priority: 4,
-    maxRequestsPerMinute: 60,
-    maxRequestsPerDay: 1000,
-    maxTokensPerRequest: 32000,
-    cooldownOnRateLimit: 62,
-    cooldownOnError: 15,
-    browserSafe: true,
-    free: false,
-    quality: 'medium',
-    enabled: true,
-  },
-
-  {
-    id: 'qwen',
-    name: 'Qwen (Alibaba)',
-    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-    model: 'qwen-plus',
-    envKey: 'VITE_QWEN_API_KEY',
-    format: 'openai',
-    priority: 5,
-    maxRequestsPerMinute: 60,
-    maxRequestsPerDay: 1000,
-    maxTokensPerRequest: 30000,
-    cooldownOnRateLimit: 62,
-    cooldownOnError: 15,
-    browserSafe: true,
-    free: false,
-    quality: 'medium',
-    enabled: true,
-  },
-
-  {
-    id: 'openrouter_qwen',
-    name: 'OpenRouter (Qwen Free)',
-    url: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'qwen/qwen-2.5-72b-instruct:free',
-    envKey: 'VITE_OPENROUTER_API_KEY',
-    format: 'openai',
-    priority: 6,
-    maxRequestsPerMinute: 10,
-    maxRequestsPerDay: 100,
-    maxTokensPerRequest: 8000,
-    cooldownOnRateLimit: 70,
-    cooldownOnError: 20,
-    browserSafe: true,
-    free: true,
-    quality: 'medium',
-    enabled: true,
-  },
-
-  {
-    id: 'openrouter_mistral',
-    name: 'OpenRouter (Mistral Free)',
-    url: 'https://openrouter.ai/api/v1/chat/completions',
-    model: 'mistralai/mistral-7b-instruct:free',
-    envKey: 'VITE_OPENROUTER_API_KEY',
-    format: 'openai',
-    priority: 7,
-    maxRequestsPerMinute: 10,
-    maxRequestsPerDay: 100,
-    maxTokensPerRequest: 8000,
-    cooldownOnRateLimit: 70,
-    cooldownOnError: 20,
-    browserSafe: true,
-    free: true,
-    quality: 'low',
-    enabled: true,
-  },
-];
-
-// ═══════════════════════════════════════════════════════════════════
-// QUOTA MANAGER
-// Tracks per-provider usage in localStorage.
-// Persists across page reloads. Resets automatically by time.
-// ═══════════════════════════════════════════════════════════════════
-
-const QUOTA_KEY = 'mindoo_quota';
-
-function getQuotaState() {
-  try {
-    const raw = localStorage.getItem(QUOTA_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveQuotaState(state) {
-  try {
-    localStorage.setItem(QUOTA_KEY, JSON.stringify(state));
-  } catch {
-    // localStorage full or unavailable — degrade gracefully
-  }
-}
-
-function getProviderState(providerId) {
-  const state = getQuotaState();
+export async function loadProviders(userId) {
   const now = Date.now();
-  const today = new Date().toDateString();
-  const existing = state[providerId] || {};
+  if (_cacheUser===userId && _cache.length>0 && now-_cacheAt<CACHE_TTL) return _cache;
+  const { data, error } = await supabase
+    .from("ai_providers").select("*")
+    .eq("user_id",userId).eq("is_enabled",true).eq("is_paused",false)
+    .order("priority",{ascending:true});
+  if (error) { console.warn("[AI] Cannot load providers:",error.message); return _cache; }
+  _cache=data||[]; _cacheUser=userId; _cacheAt=now;
+  return _cache;
+}
 
-  // Reset minute counter if more than 60 seconds since last request
-  const minuteReset = (now - (existing.lastRequestAt || 0)) > 60000;
+export function invalidateProviderCache() { _cacheAt=0; }
 
-  // Reset day counter if it's a new calendar day
-  const dayReset = existing.lastDay !== today;
+// ── Quota state (localStorage) ────────────────────────────────────
+const QK = "mindoo_quota_v2";
+function getQ()   { try{return JSON.parse(localStorage.getItem(QK)||"{}")}catch{return{}} }
+function saveQ(s) { try{localStorage.setItem(QK,JSON.stringify(s))}catch{} }
 
+function pq(pid) {
+  const s=getQ(), now=Date.now(), today=new Date().toDateString(), ex=s[pid]||{};
+  const minR=(now-(ex.lastRequestAt||0))>60_000, dayR=ex.lastDay!==today;
   return {
-    requestsThisMinute: minuteReset ? 0 : (existing.requestsThisMinute || 0),
-    requestsToday:      dayReset    ? 0 : (existing.requestsToday      || 0),
-    lastRequestAt:      existing.lastRequestAt    || 0,
-    lastDay:            dayReset ? today : (existing.lastDay || today),
-    coolingDownUntil:   existing.coolingDownUntil || null,
-    consecutiveErrors:  existing.consecutiveErrors || 0,
-    totalRequests:      existing.totalRequests     || 0,
-    totalFailures:      existing.totalFailures     || 0,
-    lastFailureReason:  existing.lastFailureReason || null,
-    disabledForSession: existing.disabledForSession || false,
+    requestsThisMinute: minR?0:(ex.requestsThisMinute||0),
+    requestsToday:      dayR?0:(ex.requestsToday||0),
+    lastRequestAt:      ex.lastRequestAt||0,
+    lastDay:            dayR?today:(ex.lastDay||today),
+    coolingDownUntil:   ex.coolingDownUntil||null,
+    consecutiveErrors:  ex.consecutiveErrors||0,
+    totalRequests:      ex.totalRequests||0,
+    totalFailures:      ex.totalFailures||0,
+    lastFailureReason:  ex.lastFailureReason||null,
+    disabledForSession: ex.disabledForSession||false,
   };
 }
 
-function updateProviderState(providerId, update) {
-  const state = getQuotaState();
-  state[providerId] = { ...getProviderState(providerId), ...update };
-  saveQuotaState(state);
+function patch(pid, u) {
+  const s=getQ(); s[pid]={...pq(pid),...u}; saveQ(s);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// AVAILABILITY CHECK
-// Returns { available: true } or { available: false, reason: '...' }
-// ═══════════════════════════════════════════════════════════════════
-
-function isProviderAvailable(provider) {
-  if (!provider.enabled) {
-    return { available: false, reason: 'disabled in config' };
-  }
-
-  const key = import.meta.env[provider.envKey];
-  if (!key) {
-    return { available: false, reason: 'no API key in .env.local' };
-  }
-
-  const ps = getProviderState(provider.id);
-  const now = Date.now();
-
-  if (ps.disabledForSession) {
-    return { available: false, reason: 'auth failed this session — check API key' };
-  }
-
-  if (ps.coolingDownUntil && now < ps.coolingDownUntil) {
-    const secsLeft = Math.ceil((ps.coolingDownUntil - now) / 1000);
-    return { available: false, reason: `cooling down — ${secsLeft}s remaining` };
-  }
-
-  if (ps.requestsThisMinute >= provider.maxRequestsPerMinute) {
-    return { available: false, reason: 'minute quota reached' };
-  }
-
-  if (ps.requestsToday >= provider.maxRequestsPerDay) {
-    return { available: false, reason: 'daily quota reached' };
-  }
-
-  return { available: true };
+// ── Availability ──────────────────────────────────────────────────
+function isAvail(p) {
+  if (!p.api_key?.trim()) return {ok:false,reason:"no API key — add in AI Providers settings"};
+  const q=pq(p.provider_id), now=Date.now();
+  if (q.disabledForSession)             return {ok:false,reason:"auth failed this session"};
+  if (q.coolingDownUntil&&now<q.coolingDownUntil) return {ok:false,reason:`cooling down — ${Math.ceil((q.coolingDownUntil-now)/1000)}s left`};
+  if (q.requestsThisMinute>=p.max_requests_per_minute) return {ok:false,reason:"per-minute quota reached"};
+  if (q.requestsToday>=p.max_requests_per_day)         return {ok:false,reason:"daily quota reached"};
+  return {ok:true};
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SINGLE PROVIDER CALL
-// Calls one provider. Handles all error types. Updates quota state.
-// Throws on failure so the main loop can try the next provider.
-// ═══════════════════════════════════════════════════════════════════
+// ── Format adapters ───────────────────────────────────────────────
+async function callOpenAI(p,msgs,sys,maxTok) {
+  const h={"Content-Type":"application/json","Authorization":`Bearer ${p.api_key}`};
+  if (p.base_url.includes("openrouter.ai")) { h["HTTP-Referer"]="https://axis-app-kappa.vercel.app"; h["X-Title"]="Mindoo"; }
+  const res=await fetch(p.base_url,{method:"POST",headers:h,body:JSON.stringify({model:p.model,max_tokens:maxTok,temperature:0.7,messages:[{role:"system",content:sys},...msgs]})});
+  return {res, extract:(d)=>d?.choices?.[0]?.message?.content||""};
+}
 
-async function callProvider(provider, messages, systemPrompt, maxTokens) {
-  const key = import.meta.env[provider.envKey];
-  const now = Date.now();
-  const ps  = getProviderState(provider.id);
+async function callAnthropic(p,msgs,sys,maxTok) {
+  const res=await fetch(p.base_url,{method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":p.api_key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:p.model,max_tokens:maxTok,system:sys,messages:msgs})});
+  return {res, extract:(d)=>d?.content?.map(c=>c.text||"").join("")||""};
+}
 
-  // Record the attempt immediately
-  updateProviderState(provider.id, {
-    requestsThisMinute: ps.requestsThisMinute + 1,
-    requestsToday:      ps.requestsToday      + 1,
-    lastRequestAt:      now,
-    totalRequests:      ps.totalRequests      + 1,
-  });
+async function callGoogle(p,msgs,sys,maxTok) {
+  const url=`${p.base_url}?key=${p.api_key}`;
+  const contents=msgs.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]}));
+  const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({system_instruction:{parts:[{text:sys}]},contents,generationConfig:{maxOutputTokens:maxTok,temperature:0.7}})});
+  return {res, extract:(d)=>d?.candidates?.[0]?.content?.parts?.[0]?.text||""};
+}
 
-  const headers = {
-    'Content-Type':  'application/json',
-    'Authorization': `Bearer ${key}`,
-  };
+// ── Single provider call ──────────────────────────────────────────
+async function callOne(p,msgs,sys,maxTok) {
+  const pid=p.provider_id, now=Date.now(), q=pq(pid);
+  patch(pid,{requestsThisMinute:q.requestsThisMinute+1,requestsToday:q.requestsToday+1,lastRequestAt:now,totalRequests:q.totalRequests+1});
 
-  // OpenRouter requires these extra headers
-  if (provider.id === 'openrouter' || provider.id.startsWith('openrouter_')) {
-    headers['HTTP-Referer'] = 'https://axis-app-kappa.vercel.app';
-    headers['X-Title']      = 'Mindoo';
-  }
-
-  const body = {
-    model:       provider.model,
-    max_tokens:  maxTokens,
-    temperature: 0.7,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      ...messages,
-    ],
-  };
-
-  let response;
+  let res,extract;
   try {
-    response = await fetch(provider.url, {
-      method:  'POST',
-      headers,
-      body:    JSON.stringify(body),
-    });
-  } catch (networkErr) {
-    // Network-level failure (offline, DNS, etc.)
-    const cur = getProviderState(provider.id);
-    updateProviderState(provider.id, {
-      coolingDownUntil:  now + (provider.cooldownOnError * 1000),
-      consecutiveErrors: cur.consecutiveErrors + 1,
-      totalFailures:     cur.totalFailures     + 1,
-      lastFailureReason: 'network error',
-    });
-    throw new Error(`${provider.name}: network error`);
+    const fmt=(p.api_format||"openai").toLowerCase();
+    if      (fmt==="anthropic") ({res,extract}=await callAnthropic(p,msgs,sys,maxTok));
+    else if (fmt==="google")    ({res,extract}=await callGoogle(p,msgs,sys,maxTok));
+    else                        ({res,extract}=await callOpenAI(p,msgs,sys,maxTok));
+  } catch(e) {
+    const cur=pq(pid);
+    patch(pid,{coolingDownUntil:now+(p.cooldown_on_error*1000),consecutiveErrors:cur.consecutiveErrors+1,totalFailures:cur.totalFailures+1,lastFailureReason:"network error"});
+    throw new Error(`${p.name}: network error`);
   }
 
-  if (!response.ok) {
-    const cur = getProviderState(provider.id);
-
-    if (response.status === 429) {
-      updateProviderState(provider.id, {
-        coolingDownUntil:  now + (provider.cooldownOnRateLimit * 1000),
-        consecutiveErrors: cur.consecutiveErrors + 1,
-        totalFailures:     cur.totalFailures     + 1,
-        lastFailureReason: '429 rate limited',
-      });
-      throw new Error(`${provider.name}: 429 rate limited`);
-    }
-
-    if (response.status === 401 || response.status === 403) {
-      updateProviderState(provider.id, {
-        disabledForSession: true,
-        totalFailures:      cur.totalFailures + 1,
-        lastFailureReason:  `${response.status} auth failed`,
-      });
-      throw new Error(`${provider.name}: ${response.status} auth failed`);
-    }
-
-    if (response.status >= 500) {
-      updateProviderState(provider.id, {
-        coolingDownUntil:  now + (provider.cooldownOnError * 1000),
-        consecutiveErrors: cur.consecutiveErrors + 1,
-        totalFailures:     cur.totalFailures     + 1,
-        lastFailureReason: `${response.status} server error`,
-      });
-      throw new Error(`${provider.name}: ${response.status} server error`);
-    }
-
-    throw new Error(`${provider.name}: ${response.status} unexpected error`);
+  if (!res.ok) {
+    const cur=pq(pid);
+    if (res.status===429) { patch(pid,{coolingDownUntil:now+(p.cooldown_on_rate_limit*1000),consecutiveErrors:cur.consecutiveErrors+1,totalFailures:cur.totalFailures+1,lastFailureReason:"429 rate limited"}); throw new Error(`${p.name}: rate limited`); }
+    if (res.status===401||res.status===403) { patch(pid,{disabledForSession:true,totalFailures:cur.totalFailures+1,lastFailureReason:`${res.status} auth failed`}); throw new Error(`${p.name}: auth failed`); }
+    if (res.status>=500) { patch(pid,{coolingDownUntil:now+(p.cooldown_on_error*1000),consecutiveErrors:cur.consecutiveErrors+1,totalFailures:cur.totalFailures+1,lastFailureReason:`${res.status} server error`}); throw new Error(`${p.name}: server error ${res.status}`); }
+    throw new Error(`${p.name}: error ${res.status}`);
   }
 
-  let data;
-  try {
-    data = await response.json();
-  } catch {
-    throw new Error(`${provider.name}: invalid JSON response`);
-  }
-
-  const text = data?.choices?.[0]?.message?.content || '';
-  if (!text.trim()) {
-    throw new Error(`${provider.name}: empty response`);
-  }
-
-  // Success — reset error counters for this provider
-  updateProviderState(provider.id, {
-    consecutiveErrors: 0,
-    coolingDownUntil:  null,
-  });
-
-  return {
-    text,
-    model:        provider.model,
-    provider:     provider.id,
-    providerName: provider.name,
-    failed:       false,
-  };
+  let data; try{data=await res.json()}catch{throw new Error(`${p.name}: invalid JSON`);}
+  const text=extract(data);
+  if (!text?.trim()) throw new Error(`${p.name}: empty response`);
+  patch(pid,{consecutiveErrors:0,coolingDownUntil:null,lastFailureReason:null});
+  return {text,model:p.model,provider:p.provider_id,providerName:p.name,failed:false};
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// callAI — THE MAIN FUNCTION
-// Smart failover loop. Tries providers in priority order.
-// Skips unavailable ones. Returns first success.
-// Components call this — never individual providers directly.
-// ═══════════════════════════════════════════════════════════════════
+// ── callAI — THE MAIN FUNCTION ────────────────────────────────────
+export async function callAI({messages,systemPrompt,maxTokens=1000,userId,preferredProviderId}) {
+  if (!userId) return fallback([{provider:"system",reason:"no userId"}]);
 
-export async function callAI({ messages, systemPrompt, maxTokens = 1000 }) {
-  const sorted  = [...PROVIDER_REGISTRY].sort((a, b) => a.priority - b.priority);
-  const skipped = [];
+  let providers = await loadProviders(userId);
+  if (!providers.length) return fallback([{provider:"system",reason:"no providers — add in AI Providers settings"}]);
 
-  for (const provider of sorted) {
-    const { available, reason } = isProviderAvailable(provider);
+  // Pin to a specific provider if the user selected one
+  if (preferredProviderId) {
+    const pinned = providers.find(p=>p.provider_id===preferredProviderId);
+    if (pinned) providers = [pinned, ...providers.filter(p=>p.provider_id!==preferredProviderId)];
+  }
 
-    if (!available) {
-      skipped.push({ provider: provider.name, reason });
-      console.info(`[AI] Skipping ${provider.name}: ${reason}`);
-      continue;
-    }
-
+  const skipped=[];
+  for (const p of providers) {
+    const {ok,reason}=isAvail(p);
+    if (!ok) { skipped.push({provider:p.name,reason}); console.info(`[AI] Skip ${p.name}: ${reason}`); continue; }
     try {
-      console.info(`[AI] Trying ${provider.name} (${provider.model})...`);
-      const result = await callProvider(provider, messages, systemPrompt, maxTokens);
-      console.info(`[AI] ✓ ${provider.name} responded successfully`);
-      return result;
-    } catch (err) {
-      skipped.push({ provider: provider.name, reason: err.message });
-      console.warn(`[AI] ✗ ${provider.name} failed: ${err.message}`);
-      // Continue to next provider
-    }
+      console.info(`[AI] Trying ${p.name} (${p.model})...`);
+      const r=await callOne(p,messages,systemPrompt,maxTokens);
+      console.info(`[AI] ✓ ${p.name}`);
+      return r;
+    } catch(e) { skipped.push({provider:p.name,reason:e.message}); console.warn(`[AI] ✗ ${p.name}: ${e.message}`); }
   }
-
-  // All providers exhausted
-  console.error('[AI] All providers failed or unavailable:', skipped);
-  return {
-    text:         "I'm having trouble connecting right now. All AI providers are temporarily unavailable. Your data is safe — please try again in a minute.",
-    model:        'none',
-    provider:     'fallback',
-    providerName: 'Fallback',
-    failed:       true,
-    skipped,
-  };
+  console.error("[AI] All failed:",skipped);
+  return fallback(skipped);
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// getProviderStatus
-// Returns health data for every provider — used by UI status dots.
-// ═══════════════════════════════════════════════════════════════════
+function fallback(skipped) {
+  return {text:"I'm having trouble connecting right now. All AI providers are temporarily unavailable or unconfigured. Please check your AI Provider settings and try again in a minute.",model:"none",provider:"fallback",providerName:"Fallback",failed:true,skipped};
+}
 
-export function getProviderStatus() {
-  return PROVIDER_REGISTRY.map(provider => {
-    const { available, reason } = isProviderAvailable(provider);
-    const ps     = getProviderState(provider.id);
-    const hasKey = !!import.meta.env[provider.envKey];
-
+// ── getProviderStatus ─────────────────────────────────────────────
+export async function getProviderStatus(userId) {
+  const {data:all}=await supabase.from("ai_providers").select("*").eq("user_id",userId).order("priority",{ascending:true});
+  if (!all) return [];
+  const now=Date.now();
+  return all.map(p=>{
+    const q=pq(p.provider_id), {ok,reason}=isAvail(p);
     return {
-      id:               provider.id,
-      name:             provider.name,
-      model:            provider.model,
-      priority:         provider.priority,
-      available,
-      reason:           available ? null : reason,
-      hasKey,
-      requestsToday:    ps.requestsToday,
-      maxPerDay:        provider.maxRequestsPerDay,
-      quotaPercent:     Math.min(100, Math.round((ps.requestsToday / provider.maxRequestsPerDay) * 100)),
-      coolingDown:      !!(ps.coolingDownUntil && Date.now() < ps.coolingDownUntil),
-      consecutiveErrors: ps.consecutiveErrors,
-      totalRequests:    ps.totalRequests,
-      free:             provider.free,
-      quality:          provider.quality,
+      id:p.id, providerId:p.provider_id, name:p.name, company:p.company,
+      model:p.model, apiFormat:p.api_format, priority:p.priority,
+      isEnabled:p.is_enabled, isPaused:p.is_paused, hasKey:!!p.api_key?.trim(),
+      available:ok&&p.is_enabled&&!p.is_paused,
+      unavailableReason:p.is_paused?"paused":!p.is_enabled?"disabled":ok?null:reason,
+      requestsToday:q.requestsToday, maxPerDay:p.max_requests_per_day,
+      quotaPercent:Math.min(100,Math.round((q.requestsToday/p.max_requests_per_day)*100)),
+      coolingDown:!!(q.coolingDownUntil&&now<q.coolingDownUntil),
+      cooldownSecsLeft:q.coolingDownUntil&&now<q.coolingDownUntil?Math.ceil((q.coolingDownUntil-now)/1000):0,
+      consecutiveErrors:q.consecutiveErrors, totalRequests:q.totalRequests, totalFailures:q.totalFailures,
+      successRate:q.totalRequests>0?Math.round(((q.totalRequests-q.totalFailures)/q.totalRequests)*100):100,
+      notes:p.notes,
     };
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// resetProvider
-// Manual recovery — clears cooldown and error state for one provider.
-// Call from Settings page if a provider was wrongly disabled.
-// ═══════════════════════════════════════════════════════════════════
-
-export function resetProvider(providerId) {
-  updateProviderState(providerId, {
-    coolingDownUntil:   null,
-    consecutiveErrors:  0,
-    disabledForSession: false,
-    lastFailureReason:  null,
-  });
-  console.info(`[AI] Provider ${providerId} manually reset`);
+// ── Provider management helpers ───────────────────────────────────
+export async function saveProviderKey(providerId,apiKey,userId) {
+  const{error}=await supabase.from("ai_providers").update({api_key:apiKey,updated_at:new Date().toISOString()}).eq("provider_id",providerId).eq("user_id",userId);
+  invalidateProviderCache(); return{error};
 }
+export async function toggleProvider(id,field,value,userId) {
+  const{error}=await supabase.from("ai_providers").update({[field]:value,updated_at:new Date().toISOString()}).eq("id",id).eq("user_id",userId);
+  invalidateProviderCache(); return{error};
+}
+export async function updateProviderPriority(id,priority,userId) {
+  const{error}=await supabase.from("ai_providers").update({priority,updated_at:new Date().toISOString()}).eq("id",id).eq("user_id",userId);
+  invalidateProviderCache(); return{error};
+}
+export async function addCustomProvider(data,userId) {
+  const{error}=await supabase.from("ai_providers").insert({...data,user_id:userId});
+  invalidateProviderCache(); return{error};
+}
+export async function deleteProvider(id,userId) {
+  const{error}=await supabase.from("ai_providers").delete().eq("id",id).eq("user_id",userId);
+  invalidateProviderCache(); return{error};
+}
+export function resetProviderQuota(pid) {
+  patch(pid,{coolingDownUntil:null,consecutiveErrors:0,disabledForSession:false,lastFailureReason:null});
+}
+export function resetAllQuotas() { try{localStorage.removeItem(QK)}catch{} }
 
-// ═══════════════════════════════════════════════════════════════════
-// resetAllProviders
-// Nuclear option — wipe all quota state and start fresh.
-// ═══════════════════════════════════════════════════════════════════
-
-export function resetAllProviders() {
+// ── analyzeChronicle ─────────────────────────────────────────────
+export async function analyzeChronicle(text,userId) {
+  if (!text?.trim()||text.trim().length<20) return{chaosScore:0,emotionalTone:"neutral",themes:[],summary:""};
+  const sys=`You are a silent analyst. Return ONLY valid JSON, no markdown.\nFormat: {"chaosScore":<0-100>,"emotionalTone":"<calm|anxious|motivated|frustrated|sad|excited|confused|neutral>","themes":["t1","t2","t3"],"summary":"<one sentence max 20 words>"}`;
   try {
-    localStorage.removeItem(QUOTA_KEY);
-    console.info('[AI] All provider states reset');
-  } catch {
-    // ignore
-  }
+    const r=await callAI({messages:[{role:"user",content:`Brain dump:\n\n${text.substring(0,3000)}`}],systemPrompt:sys,maxTokens:300,userId});
+    if (r.failed) return{chaosScore:0,emotionalTone:"neutral",themes:[],summary:""};
+    const parsed=JSON.parse(r.text.replace(/```json|```/gi,"").trim());
+    return{chaosScore:Math.min(100,Math.max(0,parseInt(parsed.chaosScore)||0)),emotionalTone:parsed.emotionalTone||"neutral",themes:Array.isArray(parsed.themes)?parsed.themes.slice(0,5):[],summary:parsed.summary||""};
+  } catch(e) { console.warn("[AI] analyzeChronicle failed:",e.message); return{chaosScore:0,emotionalTone:"neutral",themes:[],summary:""}; }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// analyzeChronicle
-// Silent AI analysis of a brain dump.
-// Called by BrainDump.jsx after every save.
-// Returns: chaos score, emotional tone, themes, summary.
-// Uses the smart failover — never blocks the save if AI is down.
-// ═══════════════════════════════════════════════════════════════════
-
-export async function analyzeChronicle(text) {
-  if (!text || text.trim().length < 20) {
-    return {
-      chaosScore:    0,
-      emotionalTone: 'neutral',
-      themes:        [],
-      summary:       '',
-    };
-  }
-
-  const systemPrompt = `You are a silent background analyst. Analyse the brain dump below.
-Return ONLY a JSON object — no explanation, no markdown, no extra text.
-
-Required format:
-{
-  "chaosScore": <integer 0-100>,
-  "emotionalTone": "<one word: calm|anxious|motivated|frustrated|sad|excited|confused|neutral>",
-  "themes": ["<theme1>", "<theme2>", "<theme3>"],
-  "summary": "<one sentence, max 20 words>"
-}`;
-
-  const messages = [
-    { role: 'user', content: `Brain dump to analyse:\n\n${text.substring(0, 3000)}` },
-  ];
-
-  try {
-    const result = await callAI({ messages, systemPrompt, maxTokens: 300 });
-
-    if (result.failed) {
-      return { chaosScore: 0, emotionalTone: 'neutral', themes: [], summary: '' };
-    }
-
-    // Strip markdown fences if the model added them despite instructions
-    const clean = result.text
-      .replace(/```json/gi, '')
-      .replace(/```/g, '')
-      .trim();
-
-    const parsed = JSON.parse(clean);
-
-    return {
-      chaosScore:    Math.min(100, Math.max(0, parseInt(parsed.chaosScore) || 0)),
-      emotionalTone: parsed.emotionalTone || 'neutral',
-      themes:        Array.isArray(parsed.themes) ? parsed.themes.slice(0, 5) : [],
-      summary:       parsed.summary || '',
-    };
-  } catch (err) {
-    console.warn('[AI] analyzeChronicle failed:', err.message);
-    return { chaosScore: 0, emotionalTone: 'neutral', themes: [], summary: '' };
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// embedText + embedQuery
-// Convert text into vectors for RAG search.
-// Requires VITE_NOMIC_API_KEY in .env.local
-// Failures are always silent — never block a save or a chat response.
-// ═══════════════════════════════════════════════════════════════════
-
+// ── Embeddings (Nomic — RAG) ──────────────────────────────────────
 export async function embedText(text) {
-  const key = import.meta.env.VITE_NOMIC_API_KEY;
-  if (!key || !text?.trim()) return null;
-
+  const key=import.meta.env.VITE_NOMIC_API_KEY;
+  if (!key||!text?.trim()) return null;
   try {
-    const response = await fetch('https://api-atlas.nomic.ai/v1/embedding/text', {
-      method:  'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify({
-        texts:     [text.substring(0, 2000)],
-        model:     'nomic-embed-text-v1.5',
-        task_type: 'search_document',
-      }),
-    });
-    if (!response.ok) throw new Error('Nomic embed failed');
-    const data = await response.json();
-    return data.embeddings?.[0] || null;
-  } catch (err) {
-    console.warn('[AI] embedText failed:', err.message);
-    return null;
-  }
+    const res=await fetch("https://api-atlas.nomic.ai/v1/embedding/text",{method:"POST",headers:{"Authorization":`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({texts:[text.substring(0,2000)],model:"nomic-embed-text-v1.5",task_type:"search_document"})});
+    return (await res.json()).embeddings?.[0]||null;
+  } catch{return null;}
 }
-
 export async function embedQuery(query) {
-  const key = import.meta.env.VITE_NOMIC_API_KEY;
-  if (!key || !query?.trim()) return null;
-
+  const key=import.meta.env.VITE_NOMIC_API_KEY;
+  if (!key||!query?.trim()) return null;
   try {
-    const response = await fetch('https://api-atlas.nomic.ai/v1/embedding/text', {
-      method:  'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify({
-        texts:     [query],
-        model:     'nomic-embed-text-v1.5',
-        task_type: 'search_query',
-      }),
-    });
-    if (!response.ok) throw new Error('Nomic query embed failed');
-    const data = await response.json();
-    return data.embeddings?.[0] || null;
-  } catch (err) {
-    console.warn('[AI] embedQuery failed:', err.message);
-    return null;
-  }
+    const res=await fetch("https://api-atlas.nomic.ai/v1/embedding/text",{method:"POST",headers:{"Authorization":`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({texts:[query],model:"nomic-embed-text-v1.5",task_type:"search_query"})});
+    return (await res.json()).embeddings?.[0]||null;
+  } catch{return null;}
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// formatDuration
-// Utility for focus session time display.
-// ═══════════════════════════════════════════════════════════════════
-
-export function formatDuration(seconds) {
-  if (seconds < 60)   return `${seconds}s`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.round((seconds % 3600) / 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+// ── formatDuration ────────────────────────────────────────────────
+export function formatDuration(s) {
+  if (s<60)   return `${s}s`;
+  if (s<3600) return `${Math.round(s/60)}m`;
+  const h=Math.floor(s/3600), m=Math.round((s%3600)/60);
+  return m>0?`${h}h ${m}m`:`${h}h`;
 }
