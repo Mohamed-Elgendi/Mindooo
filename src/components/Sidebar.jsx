@@ -1,33 +1,38 @@
-// ─────────────────────────────────────────────────────────────────
-// Sidebar — completely isolated component
-// Receives everything as props. No internal auth or routing logic.
-// ─────────────────────────────────────────────────────────────────
+// src/components/Sidebar.jsx
 import { Icon } from "./Icons";
-import { MODULES, NAV_SECTIONS } from "../config/modules";
+import { NAV_SECTIONS, MODULES } from "../config/modules";
+
+// NAV_SECTIONS = core navigation (no modules here)
+// MODULES      = separate list shown below
 
 export function Sidebar({ section, onNavigate, user, firstName, onLogout, isOpen, onClose }) {
   const initials = firstName ? firstName[0].toUpperCase() : "M";
 
+  // Sections that appear in NAV_SECTIONS — do NOT repeat in modules list
+  const navIds = new Set(NAV_SECTIONS.map(n => n.id));
+
+  // Filter MODULES to exclude anything already in nav
+  const sidebarModules = MODULES.filter(m => !navIds.has(m.id));
+
   return (
     <>
-      {/* Overlay for mobile */}
       <div
         className={`sb-overlay${isOpen ? " visible" : ""}`}
         onClick={onClose}
         aria-hidden="true"
       />
-
       <aside className={`sidebar${isOpen ? " open" : ""}`} aria-label="Navigation">
+
         {/* Logo */}
         <div className="sb-logo">
           <div className="sb-logo-text">Mindoo</div>
-          <div className="sb-logo-sub">Modular Cognitive OS</div>
+          <div className="sb-logo-sub">Life Operating System</div>
         </div>
 
-        {/* Scrollable nav area */}
+        {/* Scrollable nav */}
         <nav className="sb-nav">
 
-          {/* Main sections */}
+          {/* Core navigation */}
           <div className="sb-group">
             <span className="sb-group-label">Navigate</span>
             {NAV_SECTIONS.map(n => (
@@ -43,10 +48,10 @@ export function Sidebar({ section, onNavigate, user, firstName, onLogout, isOpen
             ))}
           </div>
 
-          {/* Modules */}
+          {/* Modules — no duplicates */}
           <div className="sb-group">
             <span className="sb-group-label">Modules</span>
-            {MODULES.map(m => (
+            {sidebarModules.map(m => (
               <button
                 key={m.id}
                 className={`sb-item${section === m.id ? " active" : ""}`}
@@ -54,9 +59,7 @@ export function Sidebar({ section, onNavigate, user, firstName, onLogout, isOpen
               >
                 <span className="sb-dot" style={{ background: m.color }} />
                 <span>{m.label}</span>
-                {m.phase > 1 && (
-                  <span className="sb-phase">P{m.phase}</span>
-                )}
+                {m.phase > 1 && <span className="sb-phase">P{m.phase}</span>}
               </button>
             ))}
           </div>
@@ -77,6 +80,7 @@ export function Sidebar({ section, onNavigate, user, firstName, onLogout, isOpen
             <span>Sign out</span>
           </button>
         </div>
+
       </aside>
     </>
   );
