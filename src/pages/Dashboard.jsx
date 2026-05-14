@@ -6,19 +6,19 @@ import { Topbar, MobileBar } from "../components/Topbar";
 import { ErrorBoundary }     from "../components/ErrorBoundary";
 import { MODULES }           from "../config/modules";
 
-import { Home }         from "./sections/Home";
-import { ChatPanel }    from "./sections/ChatPanel";
-import { BrainDump }    from "./sections/BrainDump";
-import { FocusSection } from "./sections/FocusSection";
-import { AIProviders }  from "./sections/AIProviders";
-import { ModulePage }   from "./sections/ModulePage";
-import { Settings }     from "./sections/Settings";
+import { Home }        from "./sections/Home";
+import { ChatPanel }   from "./sections/ChatPanel";
+import { BrainDump }   from "./sections/BrainDump";
+import { FocusSection} from "./sections/FocusSection";
+import { AISettings }  from "./sections/AISettings";
+import { ModulePage }  from "./sections/ModulePage";
+import { Settings }    from "./sections/Settings";
 
 function useClock() {
   const fmt = () =>
-    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+    new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) +
     "  ·  " +
-    new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+    new Date().toLocaleDateString([], { weekday:"long", month:"long", day:"numeric" });
   const [clock, setClock] = useState(fmt);
   useEffect(() => {
     const t = setInterval(() => setClock(fmt()), 30000);
@@ -27,13 +27,12 @@ function useClock() {
   return clock;
 }
 
-// Scroll wrapper — every non-chat section sits inside this
 function ScrollWrap({ children }) {
   return (
     <div style={{
-      flex:                  1,
-      overflowY:             "auto",
-      overflowX:             "hidden",
+      flex: 1,
+      overflowY: "auto",
+      overflowX: "hidden",
       WebkitOverflowScrolling: "touch",
     }}>
       {children}
@@ -57,7 +56,7 @@ export default function Dashboard() {
   }
 
   const activeMod     = MODULES.find(m => m.id === section);
-  const knownSections = ["home","chat","dump","focus","providers","settings"];
+  const knownSections = ["home","chat","dump","focus","ai-settings","settings"];
   const isModulePage  = activeMod && !knownSections.includes(section);
 
   if (loading) {
@@ -87,7 +86,6 @@ export default function Dashboard() {
 
       <main className="app-main">
         <MobileBar onMenuOpen={() => setSidebarOpen(true)} />
-
         <Topbar
           section={section}
           clock={clock}
@@ -99,18 +97,12 @@ export default function Dashboard() {
         {section === "home" && (
           <ScrollWrap>
             <ErrorBoundary key="home">
-              <Home
-                firstName={firstName}
-                userId={userId}
-                clock={clock}
-                onNavigate={navigate}
-                refreshKey={refreshKey}
-              />
+              <Home firstName={firstName} userId={userId} clock={clock} onNavigate={navigate} refreshKey={refreshKey} />
             </ErrorBoundary>
           </ScrollWrap>
         )}
 
-        {/* CHAT — has its own internal scroll, no ScrollWrap */}
+        {/* CHAT — has its own internal scroll */}
         {section === "chat" && (
           <ErrorBoundary key="chat">
             <ChatPanel firstName={firstName} user={user} />
@@ -135,11 +127,11 @@ export default function Dashboard() {
           </ScrollWrap>
         )}
 
-        {/* AI PROVIDERS */}
-        {section === "providers" && (
+        {/* AI SETTINGS — user preferences */}
+        {section === "ai-settings" && (
           <ScrollWrap>
-            <ErrorBoundary key="providers">
-              <AIProviders user={user} />
+            <ErrorBoundary key="ai-settings">
+              <AISettings user={user} />
             </ErrorBoundary>
           </ScrollWrap>
         )}
@@ -153,7 +145,7 @@ export default function Dashboard() {
           </ScrollWrap>
         )}
 
-        {/* ALL OTHER MODULES */}
+        {/* ALL OTHER MODULE PAGES */}
         {isModulePage && (
           <ScrollWrap>
             <ErrorBoundary key={section}>
