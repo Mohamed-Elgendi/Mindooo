@@ -8,27 +8,27 @@
 // ============================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { MASTERED_BOX, isCardDue } from '../config/boxes.config';
+import { MASTERED_BOX, isCardDue } from '../config/boxes.config.js';
 
 
 
 // ─── HOOK ────────────────────────────────────────────────────
 
 export function useProgress(
-  supabase:    SupabaseClient,
-  userId:      string,
-  curricula:   CurriculumDefinition[],
-  allCards:    Record<string, CardWithProgress[]>
+  supabase,
+  userId,
+  curricula,
+  allCards
 ) {
-  const [analytics,     setAnalytics]     = useState<MemoryOSAnalytics | null>(null);
+  const [analytics,     setAnalytics]     = useState(null);
   const [streak,        setStreak]        = useState(0);
   const [loading,       setLoading]       = useState(false);
-  const [error,         setError]         = useState<string | null>(null);
+  const [error,         setError]         = useState(null);
 
   // ── Compute analytics from local card data ────────────────
   // Fast path — no Supabase needed for card counts
 
-  const computeLocalAnalytics = useCallback((): Partial => {
+  const computeLocalAnalytics = useCallback(() => {
     const flat = Object.values(allCards).flat();
 
     const boxDist = {};

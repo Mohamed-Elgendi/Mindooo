@@ -513,13 +513,13 @@ export function useMemoryOS({
           unit:         c.unit,
           keyPoints:    c.keyPoints,
           box:          0,
-          dueAt:        null,
+          dueAt,
           totalReviews: 0,
           totalOwned:   0,
           totalAlmost:  0,
           totalFailed:  0,
-          lastReviewed: null,
-          masteredAt:   null,
+          lastReviewed,
+          masteredAt,
         }));
         setAllCards(prev => ({
           ...prev,
@@ -563,9 +563,9 @@ export function useMemoryOS({
   async function addCustomCard(curriculumId, card) {
     const newCard = {
       ...card,
-      box: 0, dueAt: null,
+      box: 0, dueAt,
       totalReviews: 0, totalOwned: 0, totalAlmost: 0, totalFailed: 0,
-      lastReviewed: null, masteredAt: null,
+      lastReviewed, masteredAt,
     };
     setAllCards(prev => ({
       ...prev,

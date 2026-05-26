@@ -502,7 +502,7 @@ export const JOSHUA_FOER = {
 
 // ─── GURU REGISTRY ───────────────────────────────────────────
 
-export const GURUS[] = [
+export const GURUS = [
   TONY_BUZAN,
   DOMINIC_OBRIEN,
   HARRY_LORAYNE,
@@ -510,7 +510,7 @@ export const GURUS[] = [
   JOSHUA_FOER,
 ];
 
-export const GURU_REGISTRY: Record<string, Guru> = Object.fromEntries(
+export const GURU_REGISTRY = Object.fromEntries(
   GURUS.map(g => [g.id, g])
 );
 

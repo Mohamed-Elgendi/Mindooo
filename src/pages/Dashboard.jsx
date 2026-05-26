@@ -6,19 +6,22 @@ import { Topbar, MobileBar } from "../components/Topbar";
 import { ErrorBoundary }     from "../components/ErrorBoundary";
 import { MODULES }           from "../config/modules";
 
-import { Home }        from "./sections/Home";
-import { ChatPanel }   from "./sections/ChatPanel";
-import { BrainDump }   from "./sections/BrainDump";
-import { FocusSection} from "./sections/FocusSection";
-import { AISettings }  from "./sections/AISettings";
-import { ModulePage }  from "./sections/ModulePage";
-import { Settings }    from "./sections/Settings";
+import { Home }           from "./sections/Home";
+import { ChatPanel }      from "./sections/ChatPanel";
+import { BrainDump }      from "./sections/BrainDump";
+import { FocusSection }   from "./sections/FocusSection";
+import { AISettings }     from "./sections/AISettings";
+import { ModulePage }     from "./sections/ModulePage";
+import { Settings }       from "./sections/Settings";
+import { AboutMeSection } from "./sections/AboutMeSection";
+import { MemoryOS }       from "../modules/memoryos/components/MemoryOS.jsx";
+import { supabase }       from "../supabase";
 
 function useClock() {
   const fmt = () =>
-    new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) +
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
     "  ·  " +
-    new Date().toLocaleDateString([], { weekday:"long", month:"long", day:"numeric" });
+    new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
   const [clock, setClock] = useState(fmt);
   useEffect(() => {
     const t = setInterval(() => setClock(fmt()), 30000);
@@ -55,14 +58,19 @@ export default function Dashboard() {
     setSidebarOpen(false);
   }
 
-  const activeMod     = MODULES.find(m => m.id === section);
-  const knownSections = ["home","chat","dump","focus","ai-settings","settings"];
-  const isModulePage  = activeMod && !knownSections.includes(section);
+  const activeMod = MODULES.find(m => m.id === section);
+
+  const knownSections = [
+    "home", "chat", "dump", "focus",
+    "ai-settings", "settings", "memory", "about",
+  ];
+
+  const isModulePage = activeMod && !knownSections.includes(section);
 
   if (loading) {
     return (
       <div className="loading-screen">
-        <div className="loading-logo">Mindoo</div>
+        <div className="loading-logo">Mindooo</div>
         <div className="loading-spinner" />
       </div>
     );
@@ -97,7 +105,13 @@ export default function Dashboard() {
         {section === "home" && (
           <ScrollWrap>
             <ErrorBoundary key="home">
-              <Home firstName={firstName} userId={userId} clock={clock} onNavigate={navigate} refreshKey={refreshKey} />
+              <Home
+                firstName={firstName}
+                userId={userId}
+                clock={clock}
+                onNavigate={navigate}
+                refreshKey={refreshKey}
+              />
             </ErrorBoundary>
           </ScrollWrap>
         )}
@@ -127,7 +141,7 @@ export default function Dashboard() {
           </ScrollWrap>
         )}
 
-        {/* AI SETTINGS — user preferences */}
+        {/* AI SETTINGS */}
         {section === "ai-settings" && (
           <ScrollWrap>
             <ErrorBoundary key="ai-settings">
@@ -141,6 +155,28 @@ export default function Dashboard() {
           <ScrollWrap>
             <ErrorBoundary key="settings">
               <Settings user={user} firstName={firstName} onLogout={logout} />
+            </ErrorBoundary>
+          </ScrollWrap>
+        )}
+
+        {/* MEMORY OS */}
+        {section === "memory" && (
+          <ScrollWrap>
+            <ErrorBoundary key="memory">
+              <MemoryOS
+                user={user}
+                supabase={supabase}
+                onNavigate={navigate}
+              />
+            </ErrorBoundary>
+          </ScrollWrap>
+        )}
+
+        {/* ABOUT ME */}
+        {section === "about" && (
+          <ScrollWrap>
+            <ErrorBoundary key="about">
+              <AboutMeSection userId={userId} />
             </ErrorBoundary>
           </ScrollWrap>
         )}

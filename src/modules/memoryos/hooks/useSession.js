@@ -19,38 +19,38 @@ import {
   getFailRestartRules,
   getRepButtonLabel,
   getPhaseBgTint,
-} from '../config/phases.config';
+} from '../config/phases.config.js';
 
 import {
   calculateBoxTransition,
   getNextDueAt,
   HIGH_BOX,
-} from '../config/boxes.config';
+} from '../config/boxes.config.js';
 
 
 // ─── CALLBACK TYPES ──────────────────────────────────────────
 
-) => Promise<void>;
+
 
   /** Called when the full session completes — persist session record */
   onSessionComplete: (params: {
-    sessionId:    string;
+    sessionId;
     curriculumId;
-    sessionType:  SessionType;
-    cardsTotal:   number;
-    cardsOwned:   number;
-    cardsAlmost:  number;
-    cardsFailed:  number;
-    masteryRate:  number;
-    durationMs:   number;
-  }) => Promise<void>;
+    sessionType;
+    cardsTotal;
+    cardsOwned;
+    cardsAlmost;
+    cardsFailed;
+    masteryRate;
+    durationMs;
+  }
 
   /** Called when daily progress should be updated */
   onDailyProgressUpdate: (params: {
     curriculumId;
-    sessionType:  SessionType;
-    done:         boolean;
-  }) => Promise<void>;
+    sessionType;
+    done;
+  }
 }
 
 // ─── INITIAL STATE ────────────────────────────────────────────
@@ -58,7 +58,7 @@ import {
 function buildInitialState() {
   return {
     sessionId:    '',
-    config:       null as any,
+    config as any,
     queue:        [],
     currentIndex: 0,
     currentPhase: 0,
@@ -68,7 +68,7 @@ function buildInitialState() {
     cardDone:     false,
     sessionDone:  false,
     writeInput:   '',
-    checkResult:  null,
+    checkResult,
     log:          [],
     timerSeconds: 0,
     timerRunning: false,
@@ -79,13 +79,13 @@ function buildInitialState() {
 // ─── HOOK ────────────────────────────────────────────────────
 
 export function useSession(
-  settings:  MemoryOSSettings,
+  settings,
   callbacks
 ) {
   const [state, setState]       = useState(buildInitialState);
   const stateRef                = useRef(buildInitialState());
   const timerRef                = useRef | null>(null);
-  const cardStartTimeRef        = useRef<number>(Date.now());
+  const cardStartTimeRef        = useRef(Date.now());
 
   // Keep stateRef in sync with state for use inside async callbacks
   const setStateAndRef = useCallback((updater | ((prev) => SessionState)) => {
@@ -170,8 +170,8 @@ export function useSession(
 
   const startSession = useCallback((
     curriculumId,
-    sessionType:  SessionType,
-    queue:        CardWithProgress[]
+    sessionType,
+    queue
   ) => {
     stopTimer();
 
@@ -202,7 +202,7 @@ export function useSession(
       cardDone:     false,
       sessionDone:  false,
       writeInput:   '',
-      checkResult:  null,
+      checkResult,
       log:          [],
       timerSeconds: 0,
       timerRunning: settings.mode === 'timer',
@@ -256,7 +256,7 @@ export function useSession(
         repsTarget,
         phaseDone:    false,
         writeInput:   '',
-        checkResult:  null,
+        checkResult,
         timerSeconds: settings.mode === 'timer' ? 0 : s.timerSeconds,
       };
     });
@@ -276,7 +276,7 @@ export function useSession(
       repsTarget,
       phaseDone:    false,
       writeInput:   '',
-      checkResult:  null,
+      checkResult,
       timerSeconds: settings.mode === 'timer' ? 0 : s.timerSeconds,
     }));
   }, [settings]);
@@ -300,7 +300,7 @@ export function useSession(
         repsTarget,
         phaseDone:    false,
         writeInput:   '',
-        checkResult:  null,
+        checkResult,
         timerSeconds: settings.mode === 'timer' ? 0 : s.timerSeconds,
       };
     });
@@ -430,7 +430,7 @@ export function useSession(
         phaseDone:    false,
         cardDone:     false,
         writeInput:   '',
-        checkResult:  null,
+        checkResult,
         timerSeconds: settings.mode === 'timer' ? 0 : prev.timerSeconds,
       }));
     }

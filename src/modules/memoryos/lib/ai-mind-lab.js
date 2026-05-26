@@ -10,7 +10,7 @@
 // - Smart recommendations engine
 // ============================================================
 
-import { llmRequest, llmStream, type LLMRequest } from '../lib/llm-gateway';
+import { llmRequest, llmStream } from '../lib/llm-gateway.js';
 
 // ─── TYPES ───────────────────────────────────────────────────
 
@@ -37,15 +37,15 @@ const PERFORMANCE_SYSTEM = `You are MemoryOS Performance Analyst. You interpret 
 // ─── MIND STATE ANALYSIS ─────────────────────────────────────
 
 export async function analyzeMindState(
-  analytics:  MemoryOSAnalytics,
-  userId:     string,
-  supabase:   SupabaseClient
-): Promise<MindStateReport> {
+  analytics,
+  userId,
+  supabase
+) {
 
   // Build data summary for the prompt
   const dataSummary = buildDataSummary(analytics);
 
-  const prompt: LLMRequest = {
+  const prompt = {
     task:        'mind-analysis',
     systemPrompt: MIND_ANALYSIS_SYSTEM,
     userId,
@@ -88,7 +88,7 @@ Respond ONLY with a valid JSON object matching this exact structure:
 
   try {
     const clean = response.text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean) as MindStateReport;
+    const parsed = JSON.parse(clean);
     return parsed;
   } catch {
     // Return a computed fallback report if AI parsing fails
@@ -96,7 +96,7 @@ Respond ONLY with a valid JSON object matching this exact structure:
   }
 }
 
-function buildDataSummary(analytics: MemoryOSAnalytics) {
+function buildDataSummary(analytics) {
   const { last7Days } = analytics;
   const activeDays    = last7Days.filter(d => d.total > 0).length;
   const avgPerDay     = last7Days.reduce((s, d) => s + d.total, 0) / 7;
@@ -118,7 +118,7 @@ function buildDataSummary(analytics: MemoryOSAnalytics) {
   `.trim();
 }
 
-function computeFallbackReport(analytics: MemoryOSAnalytics) {
+function computeFallbackReport(analytics) {
   const { masteryRate, streak, totalCards, cardsMastered, totalReviews } = analytics;
 
   let overallLevel['overallLevel'] = 'beginner';
@@ -152,14 +152,14 @@ function computeFallbackReport(analytics: MemoryOSAnalytics) {
 // ─── CARD GENERATOR ──────────────────────────────────────────
 
 export async function generateCardsFromText(
-  text:         string,
-  topic:        string,
-  cardCount:    number = 8,
-  userId:       string,
-  supabase:     SupabaseClient
-): Promise<GeneratedCard[]> {
+  text,
+  topic,
+  cardCount = 8,
+  userId,
+  supabase
+) {
 
-  const prompt: LLMRequest = {
+  const prompt = {
     task:        'card-generation',
     systemPrompt: CARD_GENERATOR_SYSTEM,
     userId,
@@ -196,7 +196,7 @@ Respond ONLY with this JSON array:
 
   try {
     const clean   = response.text.replace(/```json|```/g, '').trim();
-    const parsed  = JSON.parse(clean) as GeneratedCard[];
+    const parsed  = JSON.parse(clean)[];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -206,11 +206,11 @@ Respond ONLY with this JSON array:
 // ─── AI COACH ────────────────────────────────────────────────
 
 export async function sendCoachMessage(
-  message:  string,
-  history:  CoachMessage[],
-  userId:   string,
+  message,
+  history,
+  userId,
   supabase
-): Promise<string> {
+) {
 
   // Build conversation context
   const historyContext = history
@@ -218,7 +218,7 @@ export async function sendCoachMessage(
     .map(m => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`)
     .join('\n');
 
-  const prompt: LLMRequest = {
+  const prompt = {
     task:        'chat-coach',
     systemPrompt: COACH_SYSTEM,
     userId,
@@ -235,18 +235,18 @@ Coach:`,
 }
 
 export async function* streamCoachMessage(
-  message:  string,
-  history:  CoachMessage[],
-  userId:   string,
+  message,
+  history,
+  userId,
   supabase
-): AsyncGenerator<string> {
+) {
 
   const historyContext = history
     .slice(-10)
     .map(m => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`)
     .join('\n');
 
-  const prompt: LLMRequest = {
+  const prompt = {
     task:        'chat-coach',
     systemPrompt: COACH_SYSTEM,
     userId,
@@ -265,14 +265,14 @@ Coach:`,
 // ─── PERFORMANCE INSIGHTS ────────────────────────────────────
 
 export async function generatePerformanceInsights(
-  analytics: MemoryOSAnalytics,
-  userId:    string,
-  supabase:  SupabaseClient
-): Promise<AIInsight[]> {
+  analytics,
+  userId,
+  supabase
+) {
 
   const dataSummary = buildDataSummary(analytics);
 
-  const prompt: LLMRequest = {
+  const prompt = {
     task:        'mind-analysis',
     systemPrompt: PERFORMANCE_SYSTEM,
     userId,
@@ -301,15 +301,15 @@ Respond ONLY with a JSON array:
 
   try {
     const clean  = response.text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean) as AIInsight[];
+    const parsed = JSON.parse(clean)[];
     return Array.isArray(parsed) ? parsed : computeFallbackInsights(analytics);
   } catch {
     return computeFallbackInsights(analytics);
   }
 }
 
-function computeFallbackInsights(analytics: MemoryOSAnalytics): AIInsight[] {
-  const insights: AIInsight[] = [];
+function computeFallbackInsights(analytics): AIInsight[] {
+  const insights = [];
 
   if (analytics.streak >= 7) {
     insights.push({ type: 'milestone', title: `${analytics.streak}-Day Streak!`, message: 'You have practiced every day this week. Consistency is the most powerful force in memory training.', metric: 'Streak', value: analytics.streak });
@@ -338,16 +338,16 @@ function computeFallbackInsights(analytics: MemoryOSAnalytics): AIInsight[] {
 // ─── GURU STEP AI GUIDANCE ───────────────────────────────────
 
 export async function getGuruStepGuidance(
-  guruName:    string,
-  stepTitle:   string,
-  stepLesson:  string,
+  guruName,
+  stepTitle,
+  stepLesson,
   userQuestion,
   aiSystemPrompt,
-  userId:      string,
-  supabase:    SupabaseClient
-): Promise<string> {
+  userId,
+  supabase
+) {
 
-  const prompt: LLMRequest = {
+  const prompt = {
     task:        'guru-guidance',
     systemPrompt: aiSystemPrompt,
     userId,
@@ -372,10 +372,10 @@ Respond as ${guruName} with specific, actionable guidance for this exact step.
 // Rule-based fast recommendations (no AI tokens needed)
 
 export function computeSmartRecommendations(
-  analytics:    MemoryOSAnalytics,
-  dailyProgress: Record<string, { reviewDone; newDone; previewDone }>
+  analytics,
+  dailyProgress
 ): Recommendation[] {
-  const recs: Recommendation[] = [];
+  const recs = [];
 
   // Rule 1: High due count → urgent review
   if (analytics.cardsDue > 20) {
@@ -454,9 +454,9 @@ export const DEFAULT_SECTION_ORDER[] = [
 
 export async function saveSectionOrder(
   sections[],
-  userId:   string,
+  userId,
   supabase
-): Promise<void> {
+) {
   await supabase
     .from('memoryos_user_settings')
     .upsert({
@@ -467,9 +467,9 @@ export async function saveSectionOrder(
 }
 
 export async function loadSectionOrder(
-  userId:   string,
+  userId,
   supabase
-): Promise<SectionConfig[]> {
+) {
   const { data } = await supabase
     .from('memoryos_user_settings')
     .select('section_order')
@@ -477,7 +477,7 @@ export async function loadSectionOrder(
     .single();
 
   if (data?.section_order && Array.isArray(data.section_order)) {
-    return data.section_order as SectionConfig[];
+    return data.section_order[];
   }
 
   return DEFAULT_SECTION_ORDER;

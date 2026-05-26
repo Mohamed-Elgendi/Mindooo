@@ -17,9 +17,8 @@ import {
   isCardDue,
   calculateBoxTransition,
   buildBoxStatus,
-  type BoxStatus,
-  type BoxTransitionResult,
-} from '../config/boxes.config';
+
+} from '../config/boxes.config.js';
 
 
 // ─── HOOK ────────────────────────────────────────────────────
@@ -28,7 +27,7 @@ export function useBoxSystem() {
   // ── Queue builders ────────────────────────────────────────
 
   /** Cards available for Box Review (due and in boxes) */
-  function getReviewQueue(cards[])[] {
+  function getReviewQueue(cards) {
     return cards
       .filter(c => c.box > NEW_BOX && isCardDue(c.dueAt))
       .sort((a, b) => {
@@ -43,7 +42,7 @@ export function useBoxSystem() {
   function getNewQueue(
     cards[],
     limit
-  )[] {
+  ) {
     return cards
       .filter(c => c.box === NEW_BOX)
       .slice(0, limit);
@@ -53,7 +52,7 @@ export function useBoxSystem() {
   function getPreviewQueue(
     cards[],
     limit = 8
-  )[] {
+  ) {
     return cards
       .filter(c => c.box > NEW_BOX && !isCardDue(c.dueAt))
       .sort((a, b) => {
@@ -67,10 +66,10 @@ export function useBoxSystem() {
 
   /** Get the correct queue for a session type */
   function getQueueForSession(
-    cards:       CardWithProgress[],
+    cards,
     sessionType,
-    dailyNew:    number
-  )[] {
+    dailyNew
+  ) {
     switch (sessionType) {
       case 'review':  return getReviewQueue(cards);
       case 'new':     return getNewQueue(cards, dailyNew);
@@ -83,7 +82,7 @@ export function useBoxSystem() {
 
   /** Calculate the next box and due date after a review result */
   function applyResult(
-    card:   CardWithProgress,
+    card,
     result
   ) {
     return calculateBoxTransition(card.box, result);
@@ -96,23 +95,23 @@ export function useBoxSystem() {
 
   // ── Count helpers ─────────────────────────────────────────
 
-  function countNew(cards[]) {
+  function countNew(cards) {
     return cards.filter(c => c.box === NEW_BOX).length;
   }
 
-  function countDue(cards[]) {
+  function countDue(cards) {
     return cards.filter(c => c.box > NEW_BOX && isCardDue(c.dueAt)).length;
   }
 
-  function countInBoxes(cards[]) {
+  function countInBoxes(cards) {
     return cards.filter(c => c.box > NEW_BOX).length;
   }
 
-  function countMastered(cards[]) {
+  function countMastered(cards) {
     return cards.filter(c => c.box >= MASTERED_BOX).length;
   }
 
-  function countByBox(cards[]) {
+  function countByBox(cards) {
     const result = {};
     for (let i = 0; i <= MAX_BOX; i++) result[i] = 0;
     cards.forEach(c => { result[c.box] = (result[c.box] || 0) + 1; });
@@ -121,7 +120,7 @@ export function useBoxSystem() {
 
   // ── Status builders ───────────────────────────────────────
 
-  function getBoxStatus(cards[]) {
+  function getBoxStatus(cards) {
     return buildBoxStatus(cards);
   }
 
@@ -129,16 +128,16 @@ export function useBoxSystem() {
 
   /** Whether a session type has cards available to study */
   function hasCardsForSession(
-    cards:       CardWithProgress[],
+    cards,
     sessionType,
-    dailyNew:    number
+    dailyNew
   ) {
     return getQueueForSession(cards, sessionType, dailyNew).length > 0;
   }
 
   /** Why a session has no cards (for user-facing messages) */
   function getEmptySessionReason(
-    cards:       CardWithProgress[],
+    cards,
     sessionType
   ) {
     switch (sessionType) {
@@ -175,10 +174,10 @@ export function useBoxSystem() {
    *            otherwise requires New Learning done first
    */
   function canStartSession(
-    cards:        CardWithProgress[],
-    sessionType:  SessionType,
+    cards,
+    sessionType,
     dailyProgress: { reviewDone; newDone; previewDone },
-    strictOrder:  boolean
+    strictOrder
   ) {
     if (!strictOrder) return true;
 

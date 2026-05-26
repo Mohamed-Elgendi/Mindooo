@@ -447,7 +447,7 @@ export const LEARNING_SCIENCE = {
     },
     {
       id:       'learn-003',
-      title:    'Growth Mindset — Intelligence as Trainable',
+      title:    'Growth Mindset — Intelligence',
       icon:     '🌱',
       colorKey: 'teal',
       thinkers: ['Carol Dweck'],
@@ -492,7 +492,7 @@ export const LEARNING_SCIENCE = {
 
 // ─── NOBEL MIND REGISTRY ─────────────────────────────────────
 
-export const NOBEL_DOMAINS[] = [
+export const NOBEL_DOMAINS = [
   SCIENTIFIC_THINKING,
   MATHEMATICAL_THINKING,
   ECONOMIC_THINKING,
@@ -501,7 +501,7 @@ export const NOBEL_DOMAINS[] = [
   LEARNING_SCIENCE,
 ];
 
-export const NOBEL_REGISTRY: Record<string, NobelDomain> = Object.fromEntries(
+export const NOBEL_REGISTRY = Object.fromEntries(
   NOBEL_DOMAINS.map(d => [d.id, d])
 );
 

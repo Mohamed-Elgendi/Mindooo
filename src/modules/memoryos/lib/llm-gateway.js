@@ -119,7 +119,7 @@ class TokenQuotaTracker {
     return `${userId}:${provider}:${new Date().toISOString().split('T')[0]}`;
   }
 
-  record(userId, provider, tokens): void {
+  record(userId, provider, tokens) {
     const k    = this.key(userId, provider);
     const curr = this.usage.get(k) || 0;
     this.usage.set(k, curr + tokens);
@@ -162,13 +162,13 @@ class ResponseCache {
     return { text: entry.text, tokens: entry.tokens };
   }
 
-  set(key, text, tokens): void {
+  set(key, text, tokens) {
     if (this.cache.size >= this.MAX_SIZE) {
       // Evict oldest entry
       const oldest = this.cache.keys().next().value;
       if (oldest) this.cache.delete(oldest);
     }
-    this.cache.set(key, { text, tokens, ts: Date.now() });
+    this.cache.set(key, { text, tokens, ts.now() });
   }
 }
 
@@ -177,7 +177,7 @@ const responseCache = new ResponseCache();
 // ─── PROVIDER CALLERS ─────────────────────────────────────────
 
 async function callGemini(
-  req:    LLMRequest,
+  req,
   config
 ) {
   const apiKey = process.env[config.apiKeyEnvVar];
@@ -214,7 +214,7 @@ async function callGemini(
 }
 
 async function callClaude(
-  req:    LLMRequest,
+  req,
   config
 ) {
   const apiKey = process.env[config.apiKeyEnvVar];
@@ -251,7 +251,7 @@ async function callClaude(
 }
 
 async function callOpenAI(
-  req:    LLMRequest,
+  req,
   config
 ) {
   const apiKey = process.env[config.apiKeyEnvVar];
@@ -289,7 +289,7 @@ async function callOpenAI(
 }
 
 async function callGroq(
-  req:    LLMRequest,
+  req,
   config
 ) {
   const apiKey = process.env[config.apiKeyEnvVar];
@@ -331,7 +331,7 @@ async function callGroq(
 
 async function callProvider(
   provider,
-  req:      LLMRequest,
+  req,
   config:   ProviderConfig
 ) {
   switch (provider) {
@@ -346,14 +346,14 @@ async function callProvider(
 // ─── USAGE LOGGER ────────────────────────────────────────────
 
 async function logUsage(
-  supabase:  SupabaseClient,
-  userId:    string,
+  supabase,
+  userId,
   provider:  LLMProvider,
   task:      TaskType,
-  tokens:    number,
+  tokens,
   latencyMs,
-  cached:    boolean,
-  success:   boolean
+  cached,
+  success
 ) {
   try {
     await supabase.from('memoryos_ai_usage').insert({
@@ -375,8 +375,8 @@ async function logUsage(
 // ─── MAIN GATEWAY FUNCTION ────────────────────────────────────
 
 export async function llmRequest(
-  req:      LLMRequest,
-  supabase: SupabaseClient
+  req,
+  supabase
 ) {
   const startTime    = Date.now();
   const providerChain = TASK_ROUTING[req.task];
@@ -390,7 +390,7 @@ export async function llmRequest(
         provider:     'cache',
         tokensUsed:   0,
         cached:       true,
-        latencyMs:    Date.now() - startTime,
+        latencyMs.now() - startTime,
         fallbackUsed: false,
         attemptCount: 0,
       };
@@ -405,7 +405,7 @@ export async function llmRequest(
       provider:     'cache',
       tokensUsed:   0,
       cached:       false,
-      latencyMs:    Date.now() - startTime,
+      latencyMs.now() - startTime,
       fallbackUsed: false,
       attemptCount: 0,
     };
@@ -458,12 +458,12 @@ export async function llmRequest(
         provider:     providerId,
         tokensUsed:   result.tokens,
         cached:       false,
-        latencyMs:    Date.now() - startTime,
+        latencyMs.now() - startTime,
         fallbackUsed,
         attemptCount,
       };
 
-    } catch (err: any) {
+    } catch (err) {
       const code    = err?.code || 500;
       const message = err?.message || 'Unknown error';
       const retry   = err?.retry !== false;
@@ -497,7 +497,7 @@ export async function llmRequest(
     provider:     'cache',
     tokensUsed:   0,
     cached:       false,
-    latencyMs:    Date.now() - startTime,
+    latencyMs.now() - startTime,
     fallbackUsed: true,
     attemptCount,
   };
@@ -507,8 +507,8 @@ export async function llmRequest(
 // For real-time streaming responses (chat coach, guru guidance)
 
 export async function* llmStream(
-  req:      LLMRequest,
-  supabase: SupabaseClient
+  req,
+  supabase
 ) {
   // For streaming, try Gemini first (best streaming support on free tier)
   // Fall back to non-streaming if streaming not available
@@ -583,9 +583,9 @@ export function getQuotaSummary(userId): {
 } {
   const DAILY_LIMIT = 50_000;
   let total = 0;
-  const providers = {} as Record<LLMProvider, number>;
+  const providers = {}<LLMProvider, number>;
 
-  for (const provider of Object.keys(PROVIDER_CONFIGS) as LLMProvider[]) {
+  for (const provider of Object.keys(PROVIDER_CONFIGS)[]) {
     const used = quotaTracker.get(userId, provider);
     providers[provider] = used;
     total += used;
