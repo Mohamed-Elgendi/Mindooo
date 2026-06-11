@@ -1,28 +1,9 @@
 // ============================================================
 // MEMORYOS — AI MIND LAB
 // Version: 1.0.0
-//
-// All AI-powered features:
-// - Mind State Analysis (reads Supabase data → assessment)
-// - Custom Card Generator (text → flashcards)
-// - Personal AI Coach (conversational)
-// - Performance Dashboard (AI-interpreted analytics)
-// - Smart recommendations engine
 // ============================================================
 
 import { llmRequest, llmStream } from '../lib/llm-gateway.js';
-
-// ─── TYPES ───────────────────────────────────────────────────
-
-
-
-
-
-
-
-
-
-
 
 // ─── SYSTEM PROMPTS ──────────────────────────────────────────
 
@@ -36,20 +17,14 @@ const PERFORMANCE_SYSTEM = `You are MemoryOS Performance Analyst. You interpret 
 
 // ─── MIND STATE ANALYSIS ─────────────────────────────────────
 
-export async function analyzeMindState(
-  analytics,
-  userId,
-  supabase
-) {
-
-  // Build data summary for the prompt
+export async function analyzeMindState(analytics, userId, supabase) {
   const dataSummary = buildDataSummary(analytics);
 
   const prompt = {
     task:        'mind-analysis',
     systemPrompt: MIND_ANALYSIS_SYSTEM,
     userId,
-    maxTokens:   1500,
+    maxTokens:   1200,
     temperature: 0.4,
     cacheKey:    `mind-analysis:${userId}:${new Date().toDateString()}`,
     userPrompt:  `
@@ -78,7 +53,7 @@ Respond ONLY with a valid JSON object matching this exact structure:
     }
   ],
   "nextMilestone": "string",
-  "estimatedDaysToNextLevel",
+  "estimatedDaysToNextLevel": 0,
   "aiNarrative": "2-3 sentence personalized summary paragraph"
 }
 `,
@@ -87,11 +62,10 @@ Respond ONLY with a valid JSON object matching this exact structure:
   const response = await llmRequest(prompt, supabase);
 
   try {
-    const clean = response.text.replace(/```json|```/g, '').trim();
+    const clean  = response.text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
     return parsed;
   } catch {
-    // Return a computed fallback report if AI parsing fails
     return computeFallbackReport(analytics);
   }
 }
@@ -109,7 +83,7 @@ function buildDataSummary(analytics) {
 - Cards Mastered: ${analytics.cardsMastered}
 - Cards Due: ${analytics.cardsDue}
 - Total Reviews: ${analytics.totalReviews}
-- Owned: ${analytics.totalOwned} (${analytics.totalReviews > 0 ? Math.round((analytics.totalOwned/analytics.totalReviews)*100) : 0}%)
+- Owned: ${analytics.totalOwned} (${analytics.totalReviews > 0 ? Math.round((analytics.totalOwned / analytics.totalReviews) * 100) : 0}%)
 - Almost: ${analytics.totalAlmost}
 - Failed: ${analytics.totalFailed}
 - Active Days Last 7: ${activeDays}/7
@@ -121,44 +95,40 @@ function buildDataSummary(analytics) {
 function computeFallbackReport(analytics) {
   const { masteryRate, streak, totalCards, cardsMastered, totalReviews } = analytics;
 
-  let overallLevel['overallLevel'] = 'beginner';
-  if (masteryRate >= 80 && totalReviews >= 500) overallLevel = 'master';
+  let overallLevel = 'beginner';
+  if (masteryRate >= 80 && totalReviews >= 500)      overallLevel = 'master';
   else if (masteryRate >= 70 && totalReviews >= 200) overallLevel = 'advanced';
   else if (masteryRate >= 60 && totalReviews >= 100) overallLevel = 'intermediate';
   else if (masteryRate >= 40 && totalReviews >= 30)  overallLevel = 'developing';
 
+  const retentionStrength      = Math.min(100, Math.round(masteryRate * 1.1));
+  const estimatedDaysToNextLevel = Math.max(7, Math.round((100 - masteryRate) / 2));
+
   return {
     overallLevel,
-    memoryCapacity:      Math.min(100, Math.round((totalCards / 200) * 100)),
-    retentionStrength:   masteryRate,
-    consistencyScore:    Math.min(100, streak * 5),
+    memoryCapacity:         Math.min(100, Math.round((totalCards / 200) * 100)),
+    retentionStrength,
+    consistencyScore:       Math.min(100, streak * 5),
     masteryRate,
-    strengths:           masteryRate >= 60 ? ['Strong recall rate', 'Consistent practice'] : ['Getting started'],
-    weaknesses:          masteryRate < 60 ? ['Mastery rate needs improvement'] : [],
+    strengths:              masteryRate >= 60 ? ['Strong recall rate', 'Consistent practice'] : ['Getting started'],
+    weaknesses:             masteryRate < 60 ? ['Mastery rate needs improvement'] : [],
     recommendations: [{
       priority:   'high',
       category:   'session',
       title:      'Complete daily Box Review first',
-      description:'Your retention improves fastest when reviews happen at the right intervals.',
+      description: 'Your retention improves fastest when reviews happen at the right intervals.',
       action:     'Start every day with Box Review before New Learning.',
       dataReason: `You have ${analytics.cardsDue} cards due right now.`,
     }],
-    nextMilestone:            '50% mastery rate',
-    estimatedDaysToNextLevel: 14,
-    aiNarrative:              `You have reviewed ${totalReviews} cards with a ${masteryRate}% mastery rate. Keep your daily practice consistent and your retention will grow exponentially.`,
+    nextMilestone:          '50% mastery rate',
+    estimatedDaysToNextLevel,
+    aiNarrative:            `You have reviewed ${totalReviews} cards with a ${masteryRate}% mastery rate. Keep your daily practice consistent and your retention will grow exponentially.`,
   };
 }
 
 // ─── CARD GENERATOR ──────────────────────────────────────────
 
-export async function generateCardsFromText(
-  text,
-  topic,
-  cardCount = 8,
-  userId,
-  supabase
-) {
-
+export async function generateCardsFromText(text, topic, cardCount = 8, userId, supabase) {
   const prompt = {
     task:        'card-generation',
     systemPrompt: CARD_GENERATOR_SYSTEM,
@@ -195,8 +165,8 @@ Respond ONLY with this JSON array:
   const response = await llmRequest(prompt, supabase);
 
   try {
-    const clean   = response.text.replace(/```json|```/g, '').trim();
-    const parsed  = JSON.parse(clean)[];
+    const clean  = response.text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -205,16 +175,9 @@ Respond ONLY with this JSON array:
 
 // ─── AI COACH ────────────────────────────────────────────────
 
-export async function sendCoachMessage(
-  message,
-  history,
-  userId,
-  supabase
-) {
-
-  // Build conversation context
+export async function sendCoachMessage(message, history, userId, supabase) {
   const historyContext = history
-    .slice(-10) // last 10 messages for context
+    .slice(-10)
     .map(m => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`)
     .join('\n');
 
@@ -222,7 +185,7 @@ export async function sendCoachMessage(
     task:        'chat-coach',
     systemPrompt: COACH_SYSTEM,
     userId,
-    maxTokens:   600,
+    maxTokens:   800,
     temperature: 0.7,
     userPrompt:  `
 ${historyContext ? `Previous conversation:\n${historyContext}\n\n` : ''}Student: ${message}
@@ -234,13 +197,7 @@ Coach:`,
   return response.text.trim();
 }
 
-export async function* streamCoachMessage(
-  message,
-  history,
-  userId,
-  supabase
-) {
-
+export async function* streamCoachMessage(message, history, userId, supabase) {
   const historyContext = history
     .slice(-10)
     .map(m => `${m.role === 'user' ? 'Student' : 'Coach'}: ${m.content}`)
@@ -250,7 +207,7 @@ export async function* streamCoachMessage(
     task:        'chat-coach',
     systemPrompt: COACH_SYSTEM,
     userId,
-    maxTokens:   600,
+    maxTokens:   800,
     temperature: 0.7,
     streaming:   true,
     userPrompt:  `
@@ -264,12 +221,7 @@ Coach:`,
 
 // ─── PERFORMANCE INSIGHTS ────────────────────────────────────
 
-export async function generatePerformanceInsights(
-  analytics,
-  userId,
-  supabase
-) {
-
+export async function generatePerformanceInsights(analytics, userId, supabase) {
   const dataSummary = buildDataSummary(analytics);
 
   const prompt = {
@@ -301,14 +253,14 @@ Respond ONLY with a JSON array:
 
   try {
     const clean  = response.text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean)[];
+    const parsed = JSON.parse(clean);
     return Array.isArray(parsed) ? parsed : computeFallbackInsights(analytics);
   } catch {
     return computeFallbackInsights(analytics);
   }
 }
 
-function computeFallbackInsights(analytics): AIInsight[] {
+function computeFallbackInsights(analytics) {
   const insights = [];
 
   if (analytics.streak >= 7) {
@@ -337,21 +289,12 @@ function computeFallbackInsights(analytics): AIInsight[] {
 
 // ─── GURU STEP AI GUIDANCE ───────────────────────────────────
 
-export async function getGuruStepGuidance(
-  guruName,
-  stepTitle,
-  stepLesson,
-  userQuestion,
-  aiSystemPrompt,
-  userId,
-  supabase
-) {
-
+export async function getGuruStepGuidance(guruName, stepTitle, stepLesson, userQuestion, aiSystemPrompt, userId, supabase) {
   const prompt = {
     task:        'guru-guidance',
-    systemPrompt: aiSystemPrompt,
+    systemPrompt: aiSystemPrompt || COACH_SYSTEM,
     userId,
-    maxTokens:   500,
+    maxTokens:   600,
     temperature: 0.7,
     userPrompt:  `
 We are on Step: "${stepTitle}"
@@ -369,107 +312,89 @@ Respond as ${guruName} with specific, actionable guidance for this exact step.
 }
 
 // ─── SMART RECOMMENDATION ENGINE ─────────────────────────────
-// Rule-based fast recommendations (no AI tokens needed)
 
-export function computeSmartRecommendations(
-  analytics,
-  dailyProgress
-): Recommendation[] {
+export function computeSmartRecommendations(analytics, dailyProgress) {
   const recs = [];
 
-  // Rule 1: High due count → urgent review
   if (analytics.cardsDue > 20) {
     recs.push({
-      priority:   'high',
-      category:   'session',
-      title:      'Box Review Urgent',
+      priority:    'high',
+      category:    'session',
+      title:       'Box Review Urgent',
       description: `${analytics.cardsDue} cards are due. Delayed reviews weaken the memory traces you have already built.`,
-      action:     'Start Box Review now before doing anything else.',
-      dataReason: `${analytics.cardsDue} cards past their review date.`,
+      action:      'Start Box Review now before doing anything else.',
+      dataReason:  `${analytics.cardsDue} cards past their review date.`,
     });
   }
 
-  // Rule 2: Low mastery → reduce new cards
   if (analytics.masteryRate < 50 && analytics.totalReviews > 30) {
     recs.push({
-      priority:   'high',
-      category:   'session',
-      title:      'Reduce New Card Pace',
+      priority:    'high',
+      category:    'session',
+      title:       'Reduce New Card Pace',
       description: 'Your mastery rate suggests existing cards are not being fully consolidated before new ones are added.',
-      action:     'Reduce daily new cards to 5 in Settings until mastery rate reaches 65%.',
-      dataReason: `Mastery rate is ${analytics.masteryRate}% (target: 65%+).`,
+      action:      'Reduce daily new cards to 5 in Settings until mastery rate reaches 65%.',
+      dataReason:  `Mastery rate is ${analytics.masteryRate}% (target: 65%+).`,
     });
   }
 
-  // Rule 3: No streak → habit building
   if (analytics.streak === 0) {
     recs.push({
-      priority:   'high',
-      category:   'habit',
-      title:      'Start Your Daily Streak',
+      priority:    'high',
+      category:    'habit',
+      title:       'Start Your Daily Streak',
       description: 'Consistency is the single most important factor in memory training. Even 10 minutes daily beats 2 hours once a week.',
-      action:     'Set a daily MemoryOS alarm for the same time every day. Start tomorrow.',
-      dataReason: 'No active streak detected.',
+      action:      'Set a daily MemoryOS alarm for the same time every day. Start tomorrow.',
+      dataReason:  'No active streak detected.',
     });
   }
 
-  // Rule 4: Good mastery → push to Nobel Mind
   if (analytics.masteryRate >= 70 && analytics.cardsMastered >= 20) {
     recs.push({
-      priority:   'medium',
-      category:   'nobel',
-      title:      'Explore Nobel Mind',
+      priority:    'medium',
+      category:    'nobel',
+      title:       'Explore Nobel Mind',
       description: 'Your strong mastery rate shows your memory system is working. Nobel Mind content will challenge it with new domains.',
-      action:     'Open Nobel Mind and start Scientific Thinking domain.',
-      dataReason: `${analytics.masteryRate}% mastery, ${analytics.cardsMastered} cards mastered.`,
+      action:      'Open Nobel Mind and start Scientific Thinking domain.',
+      dataReason:  `${analytics.masteryRate}% mastery, ${analytics.cardsMastered} cards mastered.`,
     });
   }
 
-  // Rule 5: Low activity → suggest guru center
   const activeDays = analytics.last7Days.filter(d => d.total > 0).length;
   if (activeDays <= 2 && analytics.totalReviews < 50) {
     recs.push({
-      priority:   'medium',
-      category:   'guru',
-      title:      'Try Guru-Guided Training',
+      priority:    'medium',
+      category:    'guru',
+      title:       'Try Guru-Guided Training',
       description: 'Structured guru guidance may help build the habit more effectively than self-directed practice.',
-      action:     'Open Guru Center and start with Tony Buzan Step 1.',
-      dataReason: `Only ${activeDays} active days in the last 7.`,
+      action:      'Open Guru Center and start with Tony Buzan Step 1.',
+      dataReason:  `Only ${activeDays} active days in the last 7.`,
     });
   }
 
-  return recs.slice(0, 4); // max 4 recommendations at once
+  return recs.slice(0, 4);
 }
 
-// ─── SECTION ORDER TYPES (for draggable dashboard) ───────────
+// ─── SECTION ORDER (for draggable dashboard) ─────────────────
 
-
-
-export const DEFAULT_SECTION_ORDER[] = [
+export const DEFAULT_SECTION_ORDER = [
   { id: 'guru-center',       label: 'Guru Center',       icon: '🧠', visible: true, order: 0 },
   { id: 'knowledge-archive', label: 'Knowledge Archive', icon: '📚', visible: true, order: 1 },
   { id: 'nobel-mind',        label: 'Nobel Mind',        icon: '🏆', visible: true, order: 2 },
   { id: 'ai-mind-lab',       label: 'AI Mind Lab',       icon: '🤖', visible: true, order: 3 },
 ];
 
-export async function saveSectionOrder(
-  sections[],
-  userId,
-  supabase
-) {
+export async function saveSectionOrder(sections, userId, supabase) {
   await supabase
     .from('memoryos_user_settings')
     .upsert({
-      user_id:       userId,
+      user_id:      userId,
       section_order: sections,
-      updated_at:    new Date().toISOString(),
+      updated_at:   new Date().toISOString(),
     }, { onConflict: 'user_id' });
 }
 
-export async function loadSectionOrder(
-  userId,
-  supabase
-) {
+export async function loadSectionOrder(userId, supabase) {
   const { data } = await supabase
     .from('memoryos_user_settings')
     .select('section_order')
@@ -477,7 +402,7 @@ export async function loadSectionOrder(
     .single();
 
   if (data?.section_order && Array.isArray(data.section_order)) {
-    return data.section_order[];
+    return data.section_order;
   }
 
   return DEFAULT_SECTION_ORDER;

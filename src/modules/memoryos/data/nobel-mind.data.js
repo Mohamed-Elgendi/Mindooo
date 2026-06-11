@@ -505,15 +505,15 @@ export const NOBEL_REGISTRY = Object.fromEntries(
   NOBEL_DOMAINS.map(d => [d.id, d])
 );
 
-export function getNobelDomain(id) | undefined {
+export function getNobelDomain(id) {
   return NOBEL_REGISTRY[id];
 }
 
-export function getAllNobelDomains()[] {
+export function getAllNobelDomains() {
   return NOBEL_DOMAINS;
 }
 
 // All Nobel cards as flat array (for use with box system)
-export function getAllNobelCards()[] {
+export function getAllNobelCards() {
   return NOBEL_DOMAINS.flatMap(d => d.cards);
 }

@@ -514,10 +514,10 @@ export const GURU_REGISTRY = Object.fromEntries(
   GURUS.map(g => [g.id, g])
 );
 
-export function getGuru(id) | undefined {
+export function getGuru(id) {
   return GURU_REGISTRY[id];
 }
 
-export function getAllGurus()[] {
+export function getAllGurus() {
   return GURUS;
 }

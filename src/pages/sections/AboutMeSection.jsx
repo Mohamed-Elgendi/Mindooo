@@ -666,7 +666,7 @@ function SectionIkigai({ profile, onChange }) {
         </div>
       </div>
       <TextField label="Your Ikigai Statement — The Intersection (AI will help refine this)" field="ikigai_statement" value={profile.ikigai_statement} onChange={onChange} rows={3}
-        placeholder='e.g. "My ikigai is helping overwhelmed people build clarity through AI-powered systems — combining my love for psychology, my skill at simplifying complexity, and the world\'s need for better thinking tools."' />
+        placeholder="e.g. My ikigai is helping overwhelmed people build clarity through AI-powered systems — combining my love for psychology, my skill at simplifying complexity, and the world's need for better thinking tools." />
     </>
   );
 }
