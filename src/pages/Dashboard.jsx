@@ -15,6 +15,7 @@ import { ModulePage }      from "./sections/ModulePage";
 import { Settings }        from "./sections/Settings";
 import { AboutMeSection }  from "./sections/AboutMeSection";
 import { JournalSection }  from "./sections/JournalSection";
+import { EmotionSection }  from "./sections/EmotionSection";
 import { MemoryOS }        from "../modules/memoryos/components/MemoryOS.jsx";
 import { supabase }        from "../supabase";
 
@@ -64,7 +65,7 @@ export default function Dashboard() {
   const knownSections = [
     "home", "chat", "dump", "focus",
     "ai-settings", "settings", "memory",
-    "about", "journal",
+    "about", "journal", "emotion",
   ];
 
   const isModulePage = activeMod && !knownSections.includes(section);
@@ -178,6 +179,15 @@ export default function Dashboard() {
           <ScrollWrap>
             <ErrorBoundary key="journal">
               <JournalSection userId={userId} />
+            </ErrorBoundary>
+          </ScrollWrap>
+        )}
+
+        {/* EMOTIONAL MASTERY */}
+        {section === "emotion" && (
+          <ScrollWrap>
+            <ErrorBoundary key="emotion">
+              <EmotionSection userId={userId} />
             </ErrorBoundary>
           </ScrollWrap>
         )}
