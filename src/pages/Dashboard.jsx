@@ -6,16 +6,17 @@ import { Topbar, MobileBar } from "../components/Topbar";
 import { ErrorBoundary }     from "../components/ErrorBoundary";
 import { MODULES }           from "../config/modules";
 
-import { Home }           from "./sections/Home";
-import { ChatPanel }      from "./sections/ChatPanel";
-import { BrainDump }      from "./sections/BrainDump";
-import { FocusSection }   from "./sections/FocusSection";
-import { AISettings }     from "./sections/AISettings";
-import { ModulePage }     from "./sections/ModulePage";
-import { Settings }       from "./sections/Settings";
-import { AboutMeSection } from "./sections/AboutMeSection";
-import { MemoryOS }       from "../modules/memoryos/components/MemoryOS.jsx";
-import { supabase }       from "../supabase";
+import { Home }            from "./sections/Home";
+import { ChatPanel }       from "./sections/ChatPanel";
+import { BrainDump }       from "./sections/BrainDump";
+import { FocusSection }    from "./sections/FocusSection";
+import { AISettings }      from "./sections/AISettings";
+import { ModulePage }      from "./sections/ModulePage";
+import { Settings }        from "./sections/Settings";
+import { AboutMeSection }  from "./sections/AboutMeSection";
+import { JournalSection }  from "./sections/JournalSection";
+import { MemoryOS }        from "../modules/memoryos/components/MemoryOS.jsx";
+import { supabase }        from "../supabase";
 
 function useClock() {
   const fmt = () =>
@@ -62,7 +63,8 @@ export default function Dashboard() {
 
   const knownSections = [
     "home", "chat", "dump", "focus",
-    "ai-settings", "settings", "memory", "about",
+    "ai-settings", "settings", "memory",
+    "about", "journal",
   ];
 
   const isModulePage = activeMod && !knownSections.includes(section);
@@ -105,18 +107,12 @@ export default function Dashboard() {
         {section === "home" && (
           <ScrollWrap>
             <ErrorBoundary key="home">
-              <Home
-                firstName={firstName}
-                userId={userId}
-                clock={clock}
-                onNavigate={navigate}
-                refreshKey={refreshKey}
-              />
+              <Home firstName={firstName} userId={userId} clock={clock} onNavigate={navigate} refreshKey={refreshKey} />
             </ErrorBoundary>
           </ScrollWrap>
         )}
 
-        {/* CHAT — has its own internal scroll */}
+        {/* CHAT */}
         {section === "chat" && (
           <ErrorBoundary key="chat">
             <ChatPanel firstName={firstName} user={user} />
@@ -163,11 +159,7 @@ export default function Dashboard() {
         {section === "memory" && (
           <ScrollWrap>
             <ErrorBoundary key="memory">
-              <MemoryOS
-                user={user}
-                supabase={supabase}
-                onNavigate={navigate}
-              />
+              <MemoryOS user={user} supabase={supabase} onNavigate={navigate} />
             </ErrorBoundary>
           </ScrollWrap>
         )}
@@ -177,6 +169,15 @@ export default function Dashboard() {
           <ScrollWrap>
             <ErrorBoundary key="about">
               <AboutMeSection userId={userId} />
+            </ErrorBoundary>
+          </ScrollWrap>
+        )}
+
+        {/* JOURNAL */}
+        {section === "journal" && (
+          <ScrollWrap>
+            <ErrorBoundary key="journal">
+              <JournalSection userId={userId} />
             </ErrorBoundary>
           </ScrollWrap>
         )}
