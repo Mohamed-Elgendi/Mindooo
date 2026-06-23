@@ -1,24 +1,25 @@
 // src/pages/Dashboard.jsx
 import { useState, useEffect, useCallback } from "react";
-import { useAuth }           from "../hooks/useAuth";
-import { Sidebar }           from "../components/Sidebar";
-import { Topbar, MobileBar } from "../components/Topbar";
-import { ErrorBoundary }     from "../components/ErrorBoundary";
-import { MODULES }           from "../config/modules";
+import { useAuth }              from "../hooks/useAuth";
+import { Sidebar }              from "../components/Sidebar";
+import { Topbar, MobileBar }    from "../components/Topbar";
+import { ErrorBoundary }        from "../components/ErrorBoundary";
+import { MODULES }              from "../config/modules";
 
-import { Home }            from "./sections/Home";
-import { ChatPanel }       from "./sections/ChatPanel";
-import { BrainDump }       from "./sections/BrainDump";
-import { FocusSection }    from "./sections/FocusSection";
-import { AISettings }      from "./sections/AISettings";
-import { ModulePage }      from "./sections/ModulePage";
-import { Settings }        from "./sections/Settings";
-import { AboutMeSection }  from "./sections/AboutMeSection";
-import { JournalSection }  from "./sections/JournalSection";
-import { EmotionSection }  from "./sections/EmotionSection";
-import { HabitSection }    from "./sections/HabitSection";
-import { MemoryOS }        from "../modules/memoryos/components/MemoryOS.jsx";
-import { supabase }        from "../supabase";
+import { Home }                 from "./sections/Home";
+import { ChatPanel }            from "./sections/ChatPanel";
+import { BrainDump }            from "./sections/BrainDump";
+import { FocusSection }         from "./sections/FocusSection";
+import { AISettings }           from "./sections/AISettings";
+import { ModulePage }           from "./sections/ModulePage";
+import { Settings }             from "./sections/Settings";
+import { AboutMeSection }       from "./sections/AboutMeSection";
+import { JournalSection }       from "./sections/JournalSection";
+import { EmotionSection }       from "./sections/EmotionSection";
+import { HabitSection }         from "./sections/HabitSection";
+import { AffirmationSection }   from "./sections/AffirmationSection";
+import { MemoryOS }             from "../modules/memoryos/components/MemoryOS.jsx";
+import { supabase }             from "../supabase";
 
 function useClock() {
   const fmt = () =>
@@ -66,7 +67,7 @@ export default function Dashboard() {
   const knownSections = [
     "home", "chat", "dump", "focus",
     "ai-settings", "settings", "memory",
-    "about", "journal", "emotion", "habit",
+    "about", "journal", "emotion", "habit", "affirm",
   ];
 
   const isModulePage = activeMod && !knownSections.includes(section);
@@ -105,110 +106,82 @@ export default function Dashboard() {
           onLogout={logout}
         />
 
-        {/* HOME */}
         {section === "home" && (
-          <ScrollWrap>
-            <ErrorBoundary key="home">
-              <Home firstName={firstName} userId={userId} clock={clock} onNavigate={navigate} refreshKey={refreshKey} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="home">
+            <Home firstName={firstName} userId={userId} clock={clock} onNavigate={navigate} refreshKey={refreshKey} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* CHAT */}
         {section === "chat" && (
           <ErrorBoundary key="chat">
             <ChatPanel firstName={firstName} user={user} />
           </ErrorBoundary>
         )}
 
-        {/* BRAIN DUMP */}
         {section === "dump" && (
-          <ScrollWrap>
-            <ErrorBoundary key="dump">
-              <BrainDump userId={userId} onChronicleAdded={onDataChanged} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="dump">
+            <BrainDump userId={userId} onChronicleAdded={onDataChanged} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* FOCUS */}
         {section === "focus" && (
-          <ScrollWrap>
-            <ErrorBoundary key="focus">
-              <FocusSection userId={userId} onSessionComplete={onDataChanged} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="focus">
+            <FocusSection userId={userId} onSessionComplete={onDataChanged} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* AI SETTINGS */}
         {section === "ai-settings" && (
-          <ScrollWrap>
-            <ErrorBoundary key="ai-settings">
-              <AISettings user={user} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="ai-settings">
+            <AISettings user={user} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* SETTINGS */}
         {section === "settings" && (
-          <ScrollWrap>
-            <ErrorBoundary key="settings">
-              <Settings user={user} firstName={firstName} onLogout={logout} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="settings">
+            <Settings user={user} firstName={firstName} onLogout={logout} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* MEMORY OS */}
         {section === "memory" && (
-          <ScrollWrap>
-            <ErrorBoundary key="memory">
-              <MemoryOS user={user} supabase={supabase} onNavigate={navigate} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="memory">
+            <MemoryOS user={user} supabase={supabase} onNavigate={navigate} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* ABOUT ME */}
         {section === "about" && (
-          <ScrollWrap>
-            <ErrorBoundary key="about">
-              <AboutMeSection userId={userId} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="about">
+            <AboutMeSection userId={userId} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* JOURNAL */}
         {section === "journal" && (
-          <ScrollWrap>
-            <ErrorBoundary key="journal">
-              <JournalSection userId={userId} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="journal">
+            <JournalSection userId={userId} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* EMOTIONAL MASTERY */}
         {section === "emotion" && (
-          <ScrollWrap>
-            <ErrorBoundary key="emotion">
-              <EmotionSection userId={userId} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="emotion">
+            <EmotionSection userId={userId} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* HABIT TRANSFORMATION */}
         {section === "habit" && (
-          <ScrollWrap>
-            <ErrorBoundary key="habit">
-              <HabitSection userId={userId} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key="habit">
+            <HabitSection userId={userId} />
+          </ErrorBoundary></ScrollWrap>
         )}
 
-        {/* ALL OTHER MODULE PAGES */}
+        {section === "affirm" && (
+          <ScrollWrap><ErrorBoundary key="affirm">
+            <AffirmationSection userId={userId} />
+          </ErrorBoundary></ScrollWrap>
+        )}
+
         {isModulePage && (
-          <ScrollWrap>
-            <ErrorBoundary key={section}>
-              <ModulePage module={activeMod} onNavigate={navigate} />
-            </ErrorBoundary>
-          </ScrollWrap>
+          <ScrollWrap><ErrorBoundary key={section}>
+            <ModulePage module={activeMod} onNavigate={navigate} />
+          </ErrorBoundary></ScrollWrap>
         )}
       </main>
     </div>
