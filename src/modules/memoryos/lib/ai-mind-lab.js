@@ -2,7 +2,7 @@
 // Uses the platform's existing callAI() — no separate gateway needed
 // All API keys, providers, and quota management handled by the platform
 
-import { callAI } from '../../services/ai.js';
+import { callAI } from '../../../services/ai.js';
 
 // ─── SYSTEM PROMPTS ───────────────────────────────────────────
 
